@@ -1,0 +1,20 @@
+package com.teliolabs.tejas.gpon.util;
+
+public class EndpointConstants {
+    public static final String AUTH = "auth";
+    public static final String GET_NODES = "get-nodes";
+    public static final String GET_NES = "get-nes";
+    public static final String GET_FREE_PORTS = "get-free-ports";
+    public static final String GET_ALL_PHYSICAL_PORTS = "get-all-physical-ports";
+    public static final String GET_ALL_EQUIPMENTS = "get-all-equipments";
+    public static final String GET_ALL_TOPOLOGICAL_LINKS = "get-all-topological-links";
+    public static final String GET_ALL_PHYSICAL_CONNECTIONS = "get-all-physical-connections";
+
+    public static final String GET_PATH_CONNECTIONS = "get-path-connections";
+
+    public static final String GET_CROSS_CONNECTS = "get-cross-connects";
+    public static final String GET_ROUTE_CONNECTIONS = "get-route-connections";
+    public static final String GET_ROUTE_CONNECTIONS_STATUS = "get-route-connections-status";
+    public static final String GET_CIRCUIT_DATA = "get-circuit-data";
+
+}

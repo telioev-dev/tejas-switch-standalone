@@ -1,0 +1,23 @@
+---
+spring:
+  application:
+    name: tejas-gpon-stitching
+  main:
+    web-application-type: none
+config:
+  use-cache: true
+  db-insert: true
+  network-manager:
+    name: TJ5100 NMS
+    host: ${TEJAS_GPON_BASE_URL:https://172.23.105.26:446}
+    authentication:
+      username: ${TEJAS_GPON_USER:nbi}
+      password: ${TEJAS_GPON_PASSWORD:Rfgty$F96}
+    endpoints:
+      - name: auth
+        path: /nmsnbi-rest/tapi/data/context/auth-context/auth-token
+        method: POST
+      - name: get-circuit-data
+        host: https://172.23.105.26:446
+        path: /nmsnbi-rest/tapi/data/context/physical-context/device={node_uuid}/equipment
+        method: GET
