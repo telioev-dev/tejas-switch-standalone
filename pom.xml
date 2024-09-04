@@ -136,8 +136,8 @@
                     <archive>
                         <manifest>
                             <addClasspath>true</addClasspath>
-                            <classpathPrefix>../lib.otn/</classpathPrefix>
-                            <mainClass>com.teliolabs.nokia.otn.NokiaOtnStandaloneApplication</mainClass>
+                            <classpathPrefix>../lib.gpon/</classpathPrefix>
+                            <mainClass>com.teliolabs.tejas.gpon.TejasGponStandaloneApplication</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
