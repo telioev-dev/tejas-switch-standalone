@@ -16,5 +16,8 @@ public class EndpointConstants {
     public static final String GET_ROUTE_CONNECTIONS = "get-route-connections";
     public static final String GET_ROUTE_CONNECTIONS_STATUS = "get-route-connections-status";
     public static final String GET_CIRCUIT_DATA = "get-circuit-data";
+    public static final String GET_NODE_LIST ="get-node-list";
+    public static final String GET_NODE_DETAILS = "get-node-details";
+    public static final String GET_PHYSICAL_CONTEXT ="get-physical-context";
 
 }

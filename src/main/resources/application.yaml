@@ -21,3 +21,22 @@ config:
         host: https://172.23.105.26:446
         path: /nmsnbi-rest/tapi/data/context/physical-context/device={node_uuid}/equipment
         method: GET
+      - name: get-topology-context
+        host: https://172.23.105.26:446
+        path: /nmsnbi-rest/tapi/data/context/topology-context/
+        method: GET
+      - name: get-nw-topology-service
+        host: https://172.23.105.26:446
+        path: /nmsnbi-rest/tapi/data/context/topology-context/nw-topology-service
+        method: GET
+      - name: get-physical-context
+        host: https://172.23.105.26:446
+        path: /nmsnbi-rest/tapi/data/context/physical-context
+      - name: get-node-list
+        host: https://172.23.105.26:446
+        path: /nmsnbi-rest/tapi/data/context/topology-context/topology={uuid}/node
+        method: GET
+      - name: get-node-details
+        host: https://172.23.105.26:446
+        path: /nmsnbi-rest/tapi/data/context/topology-context/topology=TTLEMS-GPON-1/node={nodeUuid}
+        method: GET
