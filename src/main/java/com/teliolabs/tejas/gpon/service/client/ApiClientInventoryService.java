@@ -152,20 +152,20 @@ public class ApiClientInventoryService extends BaseApiClientService {
                 Ont ont = list.getRemoteUnit().getOnt();
                 String[] split = ont.getUuid().split("\\|");
             	String pdUuid = split[0]+"|"+split[1];
-//            	System.out.println("pdUuid"+pdUuid);
-//                List<TopologyNodeDetail> pdDetailList = getPdDetails();
-//                for(TopologyNodeDetail pdDetails :pdDetailList) {
-//                if(pdUuid.equals(pdDetails.getUuid())) {
-//                ArrayList<AdditionalInformation> pdAddinfo = pdDetails.getAdditionalIinformation();
-//                for (AdditionalInformation addInfo : pdAddinfo) {
-//                    if (addInfo.getValueName().equalsIgnoreCase("nativeEMSName")) {
-//                    	System.out.println(addInfo.getValue());
-//                    	aEndDropNode = addInfo.getValue();
-//                    	zEndDropNode = addInfo.getValue();
-//                    } 
-//                }
-//                }
-//                }
+            	System.out.println("pdUuid"+pdUuid);
+                List<TopologyNodeDetail> pdDetailList = getPdDetails();
+                for(TopologyNodeDetail pdDetails :pdDetailList) {
+                if(pdUuid.equals(pdDetails.getUuid())) {
+                ArrayList<AdditionalInformation> pdAddinfo = pdDetails.getAdditionalIinformation();
+                for (AdditionalInformation addInfo : pdAddinfo) {
+                    if (addInfo.getValueName().equalsIgnoreCase("nativeEMSName")) {
+                    	System.out.println(addInfo.getValue());
+                    	aEndDropNode = addInfo.getValue();
+                    	zEndDropNode = addInfo.getValue();
+                    } 
+                }
+                }
+                }
                 ArrayList<AdditionalInformation> additionalInformation = ont.getAdditionalInformation();
 
                 // Get trailId and circuitId
@@ -179,7 +179,8 @@ public class ApiClientInventoryService extends BaseApiClientService {
             }
 //                for (Root list1 : circuitDataList) {
                 // Process NodeEdgePoint entries
-                ArrayList<NodeEdgePoint> nodeEdgePointList = list.getNodeEdgePoint();
+            if(list.getRemoteUnit()!=null&&list.getRemoteUnit().getNodeEdgePoint()!=null) {
+                ArrayList<NodeEdgePoint> nodeEdgePointList = list.getRemoteUnit().getNodeEdgePoint();
                 System.out.println("nodeEdgePointList"+nodeEdgePointList.size());
                     for (NodeEdgePoint endPortList : nodeEdgePointList) {
                         ArrayList<AdditionalInformation> additionalInformation2 = endPortList.getAdditionalInformation();
@@ -189,7 +190,7 @@ public class ApiClientInventoryService extends BaseApiClientService {
                             if (addInfo1.getValueName().equalsIgnoreCase("TejasKey")) {
                                 userLabel = addInfo1.getValue();
                             } else if (addInfo1.getValueName().equalsIgnoreCase("LCTName")) {
-                                zEndDropPort = addInfo1.getValue();
+                            	zEndPort = addInfo1.getValue();
                             } else if (addInfo1.getValueName().equalsIgnoreCase("layer-rate")) {
                                 rate = addInfo1.getValue();
                             }
@@ -206,14 +207,12 @@ public class ApiClientInventoryService extends BaseApiClientService {
                                     String result = segments.length > 3
                                             ? String.join("-", segments[0], segments[1], segments[2])
                                             : splitPort;
-                                    aEndDropPort = "Port_GPON-" + result;
+                                            aEndPort = "Port_GPON-" + result;
                                 }
                             }
                         }
-						
-
-
                     }
+        }
 
                 String technology = "Ethernet";
 		      	String specification = "INNI Connectivity";
@@ -224,9 +223,8 @@ public class ApiClientInventoryService extends BaseApiClientService {
 		      	String lastModified = currentDateTime.toString();
 		      	channel ="";
                 // Collect all the data for this entry
-		      	String[] row = {trailId, userLabel, circuitId, rate,technology,specification, pathType,vendor,topology, aEndDropPort, zEndDropPort,
-                     aEndDropNode, zEndDropNode,sequence, channel, aEndNode, zEndNode,
-                    aEndPort, zEndPort, topologyType, circle,lastModified};
+		      	String[] row = {trailId, userLabel, circuitId, rate,technology,specification, pathType,vendor,aEndNode, zEndNode,
+                    aEndPort, zEndPort, circle,lastModified};
                 csvData.add(row);
         }
 
@@ -239,7 +237,7 @@ public class ApiClientInventoryService extends BaseApiClientService {
 
         try (FileWriter writer = new FileWriter(fileName)) {
             // Write the header
-			writer.append("TRAIL_ID,USER_LABEL,CIRCUIT_ID,RATE,TECHNOLOGY,SPECIFICATION,PATH_TYPE,VENDOR,TOPOLOGY,A_END_DROP_NODE,Z_END_DROP_NODE,A_END_DROP_PORT,Z_END_DROP_PORT,SEQUENCE,CHANNEL,A_END_NODE,Z_END_NODE,A_END_PORT,Z_END_PORT,TOPOLOGY_TYPE,CIRCLE,LAST_MODIFIED\n");
+			writer.append("TRAIL_ID,USER_LABEL,CIRCUIT_ID,RATE,TECHNOLOGY,SPECIFICATION,PATH_TYPE,VENDOR,A_END_NODE,Z_END_NODE,A_END_PORT,Z_END_PORT,CIRCLE,LAST_MODIFIED\n");
 
             // Write all rows
             for (String[] row : csvData) {
