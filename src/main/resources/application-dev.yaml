@@ -2,8 +2,8 @@ spring:
   datasource:
     driver-class-name: oracle.jdbc.OracleDriver
     url: jdbc:oracle:thin:@//devnidb:1521/ttldevnidbpdb.db
-    username: otn_stitching
-    password: otn2024
+    username: stitching
+    password: Telecom2030
   jpa:
     properties:
       hibernate:

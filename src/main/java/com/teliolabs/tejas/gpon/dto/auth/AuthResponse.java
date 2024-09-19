@@ -18,4 +18,11 @@ public class AuthResponse {
                 "jwt='" + accessToken + '\'' +
                 '}';
     }
+
+	public Object getRefreshToken() {
+		// TODO Auto-generated method stub
+		return "AuthResponse{" +
+                "jwt='" + accessToken + '\'' +
+                '}';
+	}
 }

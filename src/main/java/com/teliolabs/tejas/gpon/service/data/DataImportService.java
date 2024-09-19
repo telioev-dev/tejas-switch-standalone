@@ -17,5 +17,6 @@ public class DataImportService {
     public void importInventory() {
         apiClientAuthService.authenticate();
         apiClientInventoryService.getCompleteCircuitData();
+//        apiClientInventoryService.getTxOltData();
     }
 }

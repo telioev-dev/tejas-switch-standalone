@@ -4,6 +4,10 @@ spring:
     name: tejas-gpon-stitching
   main:
     web-application-type: none
+    logging:
+  level:
+    org.springframework: DEBUG
+    
 config:
   use-cache: true
   db-insert: true
@@ -11,8 +15,8 @@ config:
     name: TJ5100 NMS
     host: ${TEJAS_GPON_BASE_URL:https://172.23.105.26:446}
     authentication:
-      username: ${TEJAS_GPON_USER:nbi}
-      password: ${TEJAS_GPON_PASSWORD:Rfgty$F96}
+      username: ${TEJAS_GPON_USER:nbi_admin}
+      password: ${TEJAS_GPON_PASSWORD:Tejas@2025}
     endpoints:
       - name: auth
         path: /nmsnbi-rest/tapi/data/context/auth-context/auth-token
@@ -39,4 +43,8 @@ config:
       - name: get-node-details
         host: https://172.23.105.26:446
         path: /nmsnbi-rest/tapi/data/context/topology-context/topology=TTLEMS-GPON-1/node={nodeUuid}
+        method: GET
+      - name: get-node-edge-points
+        host: https://172.23.105.26:446
+        path: /nmsnbi-rest/tapi/data/context/topology-context/topology=TTLEMS-GPON-1/node={nodeUuid}/node-edge-point
         method: GET
