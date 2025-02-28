@@ -2,6 +2,8 @@ package com.teliolabs.tejas.gpon.service.client;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,7 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.teliolabs.tejas.gpon.config.ApplicationConfig;
@@ -48,42 +50,48 @@ public class ApiClientInventoryService extends BaseApiClientService {
     }
     
     
-    public TopologyNodeDetail getPdDetails(String pdUuid) {
-        NetworkManagerConfig networkManager = applicationConfig.getNetworkManager();
-        Endpoint endpoint = networkManager.getEndpoints().stream()
-                .filter(e -> e.getName().equals(EndpointConstants.GET_NODE_DETAILS))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Endpoint not found"));
-        
-        try {
-            TopologyNodeDetail physicalNodeList = webClientBuilder
+ // Service method with token refresh logic
+    public List<TopologyNodeDetail> getPdDetails() {
+        // Get Network Manager Config
+    	List<Root> nodeLists = getNodeList();
+    	List<TopologyNodeDetail> pdDetailsList = new ArrayList<>();
+    	
+    	TopologyNodeDetail nodesList = null;
+    	for(Root nodeList : nodeLists) {
+    		String uuid = nodeList.getUuid();
+        	if(!uuid.contains("10.76.200.137")&&!uuid.contains("10.76.198.217")&&!uuid.contains("10.76.197.81")&&!uuid.contains("10.76.199.25")
+        			&&!uuid.contains("10.76.199.225")&&!uuid.contains("10.76.198.57")&&!uuid.contains("10.76.199.65")&&!uuid.contains("10.76.199.249")
+        			&&!uuid.contains("10.76.200.1")&&!uuid.contains("10.76.200.1")&&!uuid.contains("10.76.198.105") &&!uuid.contains("10.76.197.113") 
+//        			&&!uuid.contains("10.76.200.241")&&!uuid.contains("10.76.198.33")
+        			) {
+    		NetworkManagerConfig networkManager = applicationConfig.getNetworkManager();
+            // Fetch the correct endpoint for getting node list
+            Endpoint endpoint = networkManager.getEndpoints().stream()
+                    .filter(e -> e.getName().equals(EndpointConstants.GET_NODE_DETAILS))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Endpoint not found"));
+
+            // Build the WebClient and make the request
+            nodesList = webClientBuilder
                     .baseUrl(getEndpointHost(endpoint))
                     .build()
                     .method(resolveMethod(endpoint))
                     .uri(uriBuilder -> uriBuilder.path(getEndpointPath(endpoint))
-                            .build(pdUuid))
+                            .build(uuid))
                     .headers(headers -> headers.setBearerAuth(applicationContext.getAuthContext().getAccessToken()))
                     .retrieve()
                     .bodyToMono(new ParameterizedTypeReference<TopologyNodeDetail>() {})
                     .block(); // Blocking call, consider using async if possible
-                
-            return physicalNodeList;
-        } catch (WebClientResponseException.Unauthorized e) {
-            // Handle token expiry (401 Unauthorized)
-        	apiClientAuthService.authenticate();
-            TopologyNodeDetail physicalNodeList = webClientBuilder
-            .baseUrl(getEndpointHost(endpoint))
-            .build()
-            .method(resolveMethod(endpoint))
-            .uri(uriBuilder -> uriBuilder.path(getEndpointPath(endpoint)).build(pdUuid))
-            .headers(headers -> headers.setBearerAuth(applicationContext.getAuthContext().getAccessToken()))
-            .retrieve()
-            .bodyToMono(new ParameterizedTypeReference<TopologyNodeDetail>() {})
-            .block();
-            return physicalNodeList;
-        }
-
+            if(nodesList!=null) {
+            pdDetailsList.add(nodesList);
+            }
+    	}
+    	}
+    	
+        return pdDetailsList;
     }
+
+
     
 
     public List<Root> getNodeList() {
@@ -158,8 +166,9 @@ public class ApiClientInventoryService extends BaseApiClientService {
         List<Root> circuitDataList = getCircuitList();
         List<String[]> topologyData = new ArrayList<>();
         List<String[]> tunnelData = new ArrayList<>();
-        String excelFilePath = "GPON ONT Data.xlsx"; // Update with the actual path
-        Map<String, Map<String, String>> dataMap = ExcelReader.readExcelFile(excelFilePath);
+        List<TopologyNodeDetail> pdDetailLists = getPdDetails();
+//        String excelFilePath = "GPON ONT Data.xlsx"; // Update with the actual path
+//        Map<String, Map<String, String>> dataMap = ExcelReader.readExcelFile(excelFilePath);
 
         for (Root list : circuitDataList) {
             String trailId = "null", userLabel = "null", circuitId = "null", rate = "null";
@@ -182,18 +191,22 @@ public class ApiClientInventoryService extends BaseApiClientService {
             			&&!pdUuid.contains("10.76.200.1")&&!pdUuid.contains("10.76.200.1")&&!pdUuid.contains("10.76.198.105") &&!pdUuid.contains("10.76.197.113") 
 //            			&&!pdUuid.contains("10.76.200.241")&&!pdUuid.contains("10.76.198.33")
             			) {
-                TopologyNodeDetail pdDetailList = getPdDetails(pdUuid);
-                ArrayList<AdditionalInformation> pdAddinfo = pdDetailList.getAdditionalIinformation();
-                for (AdditionalInformation addInfo : pdAddinfo) {
-                    if (addInfo.getValueName().equalsIgnoreCase("nativeEMSName")) {
-//                    	System.out.println(addInfo.getValue());
-                    	aEndDropNode = addInfo.getValue();
-                    	zEndDropNode = addInfo.getValue();
-                    	aEndNode = aEndDropNode;
-                        zEndNode = aEndDropNode;
-                        circle = addInfo.getValue().split("_")[0];
-                    } 
+                for(TopologyNodeDetail pdDetailList:pdDetailLists) {
+                    if(pdDetailList.getUuid().equals(pdUuid)) {
+                        ArrayList<AdditionalInformation> pdAddinfo = pdDetailList.getAdditionalIinformation();
+                        for (AdditionalInformation addInfo : pdAddinfo) {
+                            if (addInfo.getValueName().equalsIgnoreCase("nativeEMSName")) {
+                            	System.out.println(addInfo.getValue());
+                            	aEndDropNode = addInfo.getValue();
+                            	zEndDropNode = addInfo.getValue();
+                            	aEndNode = aEndDropNode;
+                                zEndNode = aEndDropNode;
+                                circle = addInfo.getValue().split("_")[0];
+                            } 
+                        }
+                        }	
                 }
+
             }
 
 //                // Lookup data from the map
@@ -282,8 +295,8 @@ public class ApiClientInventoryService extends BaseApiClientService {
 
 
     private void writeCsv(List<String[]> topologyData, List<String[]> tunnelData) {
-        String fileName = "PACKET_TOPOLOGY_GPON_ALL.csv";
-        String fileName2 = "PACKET_TUNNEL_GPON_ALL.csv";
+        String fileName = "/opt/gpon/PACKET_TOPOLOGY_GPON_ALL.csv";
+        String fileName2 = "/opt/gpon/PACKET_TUNNEL_GPON_ALL.csv";
 
         try (FileWriter writer = new FileWriter(fileName)) {
             // Write the header

@@ -35,29 +35,43 @@ public class ApiClientAuthService extends BaseApiClientService {
         String userName = networkManagerConfig.getAuthentication().getUsername();
         String password = networkManagerConfig.getAuthentication().getPassword();
 
-        Endpoint endpoint = networkManagerConfig.getEndpoints().stream().filter(e -> e.getName().equals(EndpointConstants.AUTH)).findFirst().get();
+        Endpoint endpoint = networkManagerConfig.getEndpoints().stream()
+                .filter(e -> e.getName().equals(EndpointConstants.AUTH))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Authentication endpoint not found"));
+
         String authEndpoint = endpoint.getPath();
 
-        log.info("userName: {}", userName);
-        log.info("password: {}", password);
+        log.info("Authenticating with userName: {}", userName);
 
-        AuthResponse authResponse = webClientBuilder.
-                baseUrl(applicationConfig.getNetworkManager().getHost()).
-                build().
-                post().
-                uri(authEndpoint).
-                header("user", userName).
-                header("password", password).
-                retrieve().
-                bodyToMono(AuthResponse.class).
-                block();
+        try {
+            AuthResponse authResponse = webClientBuilder
+                    .baseUrl(networkManagerConfig.getHost())
+                    .build()
+                    .post()
+                    .uri(authEndpoint)
+                    .header("user", userName)
+                    .header("password", password)
+                    .retrieve()
+                    .bodyToMono(AuthResponse.class)
+                    .block();
 
-        log.info("AuthResponse {}", authResponse);
+            log.info("AuthResponse received: {}", authResponse);
 
-        if (ObjectUtils.isNotEmpty(authResponse)) {
-            AuthContext authContext = AuthContext.builder().accessToken(authResponse.getAccessToken()).build();
-            applicationContext.setAuthContext(authContext);
+            if (authResponse != null && ObjectUtils.isNotEmpty(authResponse.getAccessToken())) {
+                AuthContext authContext = AuthContext.builder()
+                        .accessToken(authResponse.getAccessToken())
+                        .build();
+                applicationContext.setAuthContext(authContext);
+                log.info("Authentication successful. Token updated.");
+            } else {
+                log.error("Authentication failed. No token received.");
+                throw new RuntimeException("Failed to authenticate: No access token in response.");
+            }
+        } catch (Exception e) {
+            log.error("Error during authentication", e);
+            throw new RuntimeException("Authentication failed", e);
         }
-    }   
+    }  
 
 }

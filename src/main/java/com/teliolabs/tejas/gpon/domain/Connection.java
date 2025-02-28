@@ -1,21 +1,12 @@
 package com.teliolabs.tejas.gpon.domain;
 
-import java.time.ZonedDateTime;
-import java.util.HashSet;
-import java.util.Set;
-
-import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.OneToMany;
+import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
-
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -34,9 +25,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class Connection {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "tejasGponOltSeqGen")
+	@SequenceGenerator(name = "tejasGponOltSeqGen", sequenceName = "TEJAS_GPON_OLT_SEQ", allocationSize = 1)
+	private Long id;
 
     @Column(name = "USER_LABEL")
     private String userLabel;
