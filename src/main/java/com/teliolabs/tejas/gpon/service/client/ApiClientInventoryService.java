@@ -21,6 +21,7 @@ import com.teliolabs.tejas.gpon.config.ApplicationConfig;
 import com.teliolabs.tejas.gpon.config.Endpoint;
 import com.teliolabs.tejas.gpon.config.NetworkManagerConfig;
 import com.teliolabs.tejas.gpon.context.ApplicationContext;
+import com.teliolabs.tejas.gpon.dto.inventory.TopologyOltService;
 import com.teliolabs.tejas.gpon.dto.inventory.TopologyService;
 import com.teliolabs.tejas.gpon.dto.inventory.TunnelService;
 import com.teliolabs.tejas.gpon.util.AdditionalInformation;
@@ -39,65 +40,70 @@ public class ApiClientInventoryService extends BaseApiClientService {
     private final ApiClientAuthService apiClientAuthService;
     private final TopologyService topologyService;
     private final TunnelService tunnelService;
+    private final TopologyOltService topologyOltService;
 
     @Autowired
-    public ApiClientInventoryService(ApplicationContext applicationContext, WebClient.Builder webClientBuilder, ApplicationConfig applicationConfig, ObjectMapper objectMapper,TopologyService topologyService, TunnelService tunnelService,ApiClientAuthService apiClientAuthService) {
+    public ApiClientInventoryService(ApplicationContext applicationContext, WebClient.Builder webClientBuilder,
+            ApplicationConfig applicationConfig, ObjectMapper objectMapper, TopologyService topologyService,
+            TunnelService tunnelService,
+            TopologyOltService topologyOltService, ApiClientAuthService apiClientAuthService) {
         super(applicationContext, webClientBuilder, applicationConfig);
         this.objectMapper = objectMapper;
         this.topologyService = topologyService;
         this.tunnelService = tunnelService;
-        this.apiClientAuthService=apiClientAuthService;
+        this.apiClientAuthService = apiClientAuthService;
+        this.topologyOltService = topologyOltService;
     }
-    
-    
- // Service method with token refresh logic
+
+    // Service method with token refresh logic
     public List<TopologyNodeDetail> getPdDetails() {
         // Get Network Manager Config
-    	List<Root> nodeLists = getNodeList();
-    	List<TopologyNodeDetail> pdDetailsList = new ArrayList<>();
-    	
-    	TopologyNodeDetail nodesList = null;
-    	for(Root nodeList : nodeLists) {
-    		String uuid = nodeList.getUuid();
-        	if(!uuid.contains("10.76.200.137")&&!uuid.contains("10.76.198.217")&&!uuid.contains("10.76.197.81")&&!uuid.contains("10.76.199.25")
-        			&&!uuid.contains("10.76.199.225")&&!uuid.contains("10.76.198.57")&&!uuid.contains("10.76.199.65")&&!uuid.contains("10.76.199.249")
-        			&&!uuid.contains("10.76.200.1")&&!uuid.contains("10.76.200.1")&&!uuid.contains("10.76.198.105") &&!uuid.contains("10.76.197.113") 
-//        			&&!uuid.contains("10.76.200.241")&&!uuid.contains("10.76.198.33")
-        			) {
-    		NetworkManagerConfig networkManager = applicationConfig.getNetworkManager();
-            // Fetch the correct endpoint for getting node list
-            Endpoint endpoint = networkManager.getEndpoints().stream()
-                    .filter(e -> e.getName().equals(EndpointConstants.GET_NODE_DETAILS))
-                    .findFirst()
-                    .orElseThrow(() -> new IllegalArgumentException("Endpoint not found"));
+        List<Root> nodeLists = getNodeList();
+        List<TopologyNodeDetail> pdDetailsList = new ArrayList<>();
 
-            // Build the WebClient and make the request
-            nodesList = webClientBuilder
-                    .baseUrl(getEndpointHost(endpoint))
-                    .build()
-                    .method(resolveMethod(endpoint))
-                    .uri(uriBuilder -> uriBuilder.path(getEndpointPath(endpoint))
-                            .build(uuid))
-                    .headers(headers -> headers.setBearerAuth(applicationContext.getAuthContext().getAccessToken()))
-                    .retrieve()
-                    .bodyToMono(new ParameterizedTypeReference<TopologyNodeDetail>() {})
-                    .block(); // Blocking call, consider using async if possible
-            if(nodesList!=null) {
-            pdDetailsList.add(nodesList);
+        TopologyNodeDetail nodesList = null;
+        for (Root nodeList : nodeLists) {
+            String uuid = nodeList.getUuid();
+            if (!uuid.contains("10.76.200.137") && !uuid.contains("10.76.198.217") && !uuid.contains("10.76.197.81")
+                    && !uuid.contains("10.76.199.25")
+                    && !uuid.contains("10.76.199.225") && !uuid.contains("10.76.198.57")
+                    && !uuid.contains("10.76.199.65") && !uuid.contains("10.76.199.249")
+                    && !uuid.contains("10.76.200.1") && !uuid.contains("10.76.200.1") && !uuid.contains("10.76.198.105")
+                    && !uuid.contains("10.76.197.113")
+            // &&!uuid.contains("10.76.200.241")&&!uuid.contains("10.76.198.33")
+            ) {
+                NetworkManagerConfig networkManager = applicationConfig.getNetworkManager();
+                // Fetch the correct endpoint for getting node list
+                Endpoint endpoint = networkManager.getEndpoints().stream()
+                        .filter(e -> e.getName().equals(EndpointConstants.GET_NODE_DETAILS))
+                        .findFirst()
+                        .orElseThrow(() -> new IllegalArgumentException("Endpoint not found"));
+
+                // Build the WebClient and make the request
+                nodesList = webClientBuilder
+                        .baseUrl(getEndpointHost(endpoint))
+                        .build()
+                        .method(resolveMethod(endpoint))
+                        .uri(uriBuilder -> uriBuilder.path(getEndpointPath(endpoint))
+                                .build(uuid))
+                        .headers(headers -> headers.setBearerAuth(applicationContext.getAuthContext().getAccessToken()))
+                        .retrieve()
+                        .bodyToMono(new ParameterizedTypeReference<TopologyNodeDetail>() {
+                        })
+                        .block(); // Blocking call, consider using async if possible
+                if (nodesList != null) {
+                    pdDetailsList.add(nodesList);
+                }
             }
-    	}
-    	}
-    	
+        }
+
         return pdDetailsList;
     }
-
-
-    
 
     public List<Root> getNodeList() {
         // Get Network Manager Config
         NetworkManagerConfig networkManager = applicationConfig.getNetworkManager();
-        
+
         // Fetch the correct endpoint for getting node list
         Endpoint endpoint = networkManager.getEndpoints().stream()
                 .filter(e -> e.getName().equals(EndpointConstants.GET_NODE_LIST))
@@ -113,42 +119,44 @@ public class ApiClientInventoryService extends BaseApiClientService {
                         .build("TTLEMS-GPON-1"))
                 .headers(headers -> headers.setBearerAuth(applicationContext.getAuthContext().getAccessToken()))
                 .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<List<Root>>() {})
+                .bodyToMono(new ParameterizedTypeReference<List<Root>>() {
+                })
                 .block(); // Blocking call, consider using async if possible
-//        // Log the response
-//        log.info("nodes: {}", nodeList);
-   
+        // // Log the response
+        // log.info("nodes: {}", nodeList);
+
         return nodeList;
     }
 
     public List<Root> getCircuitList() {
         List<Root> nodeList = getNodeList();
         List<Root> circuitDataList = new ArrayList<>();
-        
+
         for (Root node : nodeList) {
             String pdUuid = node.getUuid();
             NetworkManagerConfig networkManager = applicationConfig.getNetworkManager();
             Optional<Endpoint> optionalEndpoint = networkManager.getEndpoints().stream()
-                .filter(e -> e.getName().equals(EndpointConstants.GET_CIRCUIT_DATA))
-                .findFirst();
-            
+                    .filter(e -> e.getName().equals(EndpointConstants.GET_CIRCUIT_DATA))
+                    .findFirst();
+
             if (optionalEndpoint.isPresent()) {
                 Endpoint endpoint = optionalEndpoint.get();
-                
+
                 List<Root> circuitData = webClientBuilder
-                    .baseUrl(getEndpointHost(endpoint))
-                    .build()
-                    .method(resolveMethod(endpoint))
-                    .uri(uriBuilder -> uriBuilder
-                        .path(getEndpointPath(endpoint))
-                        .queryParam("category", "ont")
-                        .queryParam("size", "500")
-                        .build(pdUuid))
-                    .headers(headers -> headers.setBearerAuth(applicationContext.getAuthContext().getAccessToken()))
-                    .retrieve()
-                    .bodyToMono(new ParameterizedTypeReference<List<Root>>() {})
-                    .block();
-                
+                        .baseUrl(getEndpointHost(endpoint))
+                        .build()
+                        .method(resolveMethod(endpoint))
+                        .uri(uriBuilder -> uriBuilder
+                                .path(getEndpointPath(endpoint))
+                                .queryParam("category", "ont")
+                                .queryParam("size", "500")
+                                .build(pdUuid))
+                        .headers(headers -> headers.setBearerAuth(applicationContext.getAuthContext().getAccessToken()))
+                        .retrieve()
+                        .bodyToMono(new ParameterizedTypeReference<List<Root>>() {
+                        })
+                        .block();
+
                 if (circuitData != null) {
                     circuitDataList.addAll(circuitData);
                 }
@@ -156,19 +164,19 @@ public class ApiClientInventoryService extends BaseApiClientService {
                 // Handle the case where the endpoint is not found
                 System.err.println("Endpoint not found for GET_CIRCUIT_DATA");
             }
-        }   
-        
+        }
+
         return circuitDataList;
     }
-
 
     public void getCompleteCircuitData() {
         List<Root> circuitDataList = getCircuitList();
         List<String[]> topologyData = new ArrayList<>();
         List<String[]> tunnelData = new ArrayList<>();
         List<TopologyNodeDetail> pdDetailLists = getPdDetails();
-//        String excelFilePath = "GPON ONT Data.xlsx"; // Update with the actual path
-//        Map<String, Map<String, String>> dataMap = ExcelReader.readExcelFile(excelFilePath);
+        // String excelFilePath = "GPON ONT Data.xlsx"; // Update with the actual path
+        // Map<String, Map<String, String>> dataMap =
+        // ExcelReader.readExcelFile(excelFilePath);
 
         for (Root list : circuitDataList) {
             String trailId = "null", userLabel = "null", circuitId = "null", rate = "null";
@@ -182,47 +190,50 @@ public class ApiClientInventoryService extends BaseApiClientService {
             if (list.getRemoteUnit() != null && list.getRemoteUnit().getOnt() != null) {
                 Ont ont = list.getRemoteUnit().getOnt();
                 String[] split = ont.getUuid().split("\\|");
-//                String pdUuid = split.length > 1 ? split[1] : "null";
-//                uuid = pdUuid;
-            	String pdUuid = split[0]+"|"+split[1];
-//            	System.out.println("pdUuid"+pdUuid);
-            	if(!pdUuid.contains("10.76.200.137")&&!pdUuid.contains("10.76.198.217")&&!pdUuid.contains("10.76.197.81")&&!pdUuid.contains("10.76.199.25")
-            			&&!pdUuid.contains("10.76.199.225")&&!pdUuid.contains("10.76.198.57")&&!pdUuid.contains("10.76.199.65")&&!pdUuid.contains("10.76.199.249")
-            			&&!pdUuid.contains("10.76.200.1")&&!pdUuid.contains("10.76.200.1")&&!pdUuid.contains("10.76.198.105") &&!pdUuid.contains("10.76.197.113") 
-//            			&&!pdUuid.contains("10.76.200.241")&&!pdUuid.contains("10.76.198.33")
-            			) {
-                for(TopologyNodeDetail pdDetailList:pdDetailLists) {
-                    if(pdDetailList.getUuid().equals(pdUuid)) {
-                        ArrayList<AdditionalInformation> pdAddinfo = pdDetailList.getAdditionalIinformation();
-                        for (AdditionalInformation addInfo : pdAddinfo) {
-                            if (addInfo.getValueName().equalsIgnoreCase("nativeEMSName")) {
-                            	System.out.println(addInfo.getValue());
-                            	aEndDropNode = addInfo.getValue();
-                            	zEndDropNode = addInfo.getValue();
-                            	aEndNode = aEndDropNode;
-                                zEndNode = aEndDropNode;
-                                circle = addInfo.getValue().split("_")[0];
-                            } 
+                // String pdUuid = split.length > 1 ? split[1] : "null";
+                // uuid = pdUuid;
+                String pdUuid = split[0] + "|" + split[1];
+                // System.out.println("pdUuid"+pdUuid);
+                if (!pdUuid.contains("10.76.200.137") && !pdUuid.contains("10.76.198.217")
+                        && !pdUuid.contains("10.76.197.81") && !pdUuid.contains("10.76.199.25")
+                        && !pdUuid.contains("10.76.199.225") && !pdUuid.contains("10.76.198.57")
+                        && !pdUuid.contains("10.76.199.65") && !pdUuid.contains("10.76.199.249")
+                        && !pdUuid.contains("10.76.200.1") && !pdUuid.contains("10.76.200.1")
+                        && !pdUuid.contains("10.76.198.105") && !pdUuid.contains("10.76.197.113")
+                // &&!pdUuid.contains("10.76.200.241")&&!pdUuid.contains("10.76.198.33")
+                ) {
+                    for (TopologyNodeDetail pdDetailList : pdDetailLists) {
+                        if (pdDetailList.getUuid().equals(pdUuid)) {
+                            ArrayList<AdditionalInformation> pdAddinfo = pdDetailList.getAdditionalIinformation();
+                            for (AdditionalInformation addInfo : pdAddinfo) {
+                                if (addInfo.getValueName().equalsIgnoreCase("nativeEMSName")) {
+                                    System.out.println(addInfo.getValue());
+                                    aEndDropNode = addInfo.getValue();
+                                    zEndDropNode = addInfo.getValue();
+                                    aEndNode = aEndDropNode;
+                                    zEndNode = aEndDropNode;
+                                    circle = addInfo.getValue().split("_")[0];
+                                }
+                            }
                         }
-                        }	
+                    }
+
                 }
 
-            }
-
-//                // Lookup data from the map
-//                Map<String, String> innerMap = dataMap.get(pdUuid);
-//                if (innerMap != null) {
-//                    String oltName = innerMap.get("OLT Name");
-//                    if (oltName != null) {
-//                        aEndNode = oltName;
-//                        aEndDropNode = oltName;
-//                        zEndNode = oltName;
-//                        zEndDropNode = oltName;
-//                        circle = oltName.split("_")[0];
-//                    } else {
-//                        log.warn("OLT Name not found for OLT IP: {}", pdUuid);
-//                    }
-//                }
+                // // Lookup data from the map
+                // Map<String, String> innerMap = dataMap.get(pdUuid);
+                // if (innerMap != null) {
+                // String oltName = innerMap.get("OLT Name");
+                // if (oltName != null) {
+                // aEndNode = oltName;
+                // aEndDropNode = oltName;
+                // zEndNode = oltName;
+                // zEndDropNode = oltName;
+                // circle = oltName.split("_")[0];
+                // } else {
+                // log.warn("OLT Name not found for OLT IP: {}", pdUuid);
+                // }
+                // }
 
                 // Process Additional Information
                 ArrayList<AdditionalInformation> additionalInformation = ont.getAdditionalInformation();
@@ -276,14 +287,16 @@ public class ApiClientInventoryService extends BaseApiClientService {
             String topologyUserLabel = String.format("%s-%s-%s-%s", aEndNode, aEndPort, zEndNode, zEndPort);
 
             // Collect data for topology
-            String[] row = {topologyUserLabel, rate, "Ethernet", "INNI Connectivity", "GPON", "GPON", "GPON", aEndNode, zEndNode,
-                            aEndPort, zEndPort, circle, lastModified};
+            String[] row = { topologyUserLabel, rate, "Ethernet", "INNI Connectivity", "GPON", "GPON", "GPON", aEndNode,
+                    zEndNode,
+                    aEndPort, zEndPort, circle, lastModified };
             topologyData.add(row);
 
             // Collect data for tunnel
-            String[] row2 = {trailId, userLabel, circuitId, rate, "Ethernet", "INNI Connectivity", "MAIN", "GPON", topologyUserLabel,
-                             aEndDropNode, zEndDropNode, aEndDropPort, zEndDropPort, aEndNode, zEndNode, aEndPort, zEndPort,
-                             circle, "NE2NE", lastModified};
+            String[] row2 = { trailId, userLabel, circuitId, rate, "Ethernet", "INNI Connectivity", "MAIN", "GPON",
+                    topologyUserLabel,
+                    aEndDropNode, zEndDropNode, aEndDropPort, zEndDropPort, aEndNode, zEndNode, aEndPort, zEndPort,
+                    circle, "NE2NE", lastModified };
             tunnelData.add(row2);
         }
 
@@ -293,14 +306,14 @@ public class ApiClientInventoryService extends BaseApiClientService {
         writeCsv(topologyData, tunnelData);
     }
 
-
     private void writeCsv(List<String[]> topologyData, List<String[]> tunnelData) {
         String fileName = "/opt/gpon/PACKET_TOPOLOGY_GPON_ALL.csv";
         String fileName2 = "/opt/gpon/PACKET_TUNNEL_GPON_ALL.csv";
 
         try (FileWriter writer = new FileWriter(fileName)) {
             // Write the header
-			writer.append("USER_LABEL,RATE,TECHNOLOGY,SPECIFICATION,VENDOR,Z_END_VENDOR,A_END_VENDOR,A_END_NODE,Z_END_NODE,A_END_PORT,Z_END_PORT,CIRCLE,LAST_MODIFIED\n");
+            writer.append(
+                    "USER_LABEL,RATE,TECHNOLOGY,SPECIFICATION,VENDOR,Z_END_VENDOR,A_END_VENDOR,A_END_NODE,Z_END_NODE,A_END_PORT,Z_END_PORT,CIRCLE,LAST_MODIFIED\n");
 
             // Write all rows
             for (String[] row : topologyData) {
@@ -312,14 +325,15 @@ public class ApiClientInventoryService extends BaseApiClientService {
         }
         try (FileWriter writer = new FileWriter(fileName2)) {
             // Write the header
-			writer.append("TRAIL_ID,USER_LABEL,CIRCUIT_ID,RATE,TECHNOLOGY,SPECIFICATION,PATH_TYPE,VENDOR,TOPOLOGY,A_END_DROP_NODE,Z_END_DROP_NODE,A_END_DROP_PORT,Z_END_DROP_PORT,A_END_NODE,Z_END_NODE,A_END_PORT,Z_END_PORT,CIRCLE,TOPOLOGY_TYPE,LAST_MODIFIED\n");
+            writer.append(
+                    "TRAIL_ID,USER_LABEL,CIRCUIT_ID,RATE,TECHNOLOGY,SPECIFICATION,PATH_TYPE,VENDOR,TOPOLOGY,A_END_DROP_NODE,Z_END_DROP_NODE,A_END_DROP_PORT,Z_END_DROP_PORT,A_END_NODE,Z_END_NODE,A_END_PORT,Z_END_PORT,CIRCLE,TOPOLOGY_TYPE,LAST_MODIFIED\n");
 
             // Write all rows
             for (String[] row : tunnelData) {
                 writer.append(String.join(",", formatValues(row))).append("\n");
             }
 
-            System.out.println("CSV file created successfully: " + fileName+ "and " +fileName2);
+            System.out.println("CSV file created successfully: " + fileName + "and " + fileName2);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -338,10 +352,11 @@ public class ApiClientInventoryService extends BaseApiClientService {
         return formattedValues;
     }
 
+    public void getTxOltData() {
+        System.out.println("STRATING OLT DATA PROCESSING");
 
-	public void getTxOltData() {
-		// TODO Auto-generated method stub
-		
-	}
+        
+
+    }
 
 }
