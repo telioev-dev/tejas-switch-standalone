@@ -1,2 +1,2 @@
-# tejas-gpon-standalone
-Tejas GPON standalone
+# tejas-switch-standalone
+Tejas SWITCH standalone

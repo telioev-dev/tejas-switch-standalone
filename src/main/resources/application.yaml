@@ -1,7 +1,7 @@
 ---
 spring:
   application:
-    name: tejas-gpon-stitching
+    name: tejas-switch-stitching
   main:
     web-application-type: none
     logging:
@@ -13,10 +13,10 @@ config:
   db-insert: true
   network-manager:
     name: TJ5100 NMS
-    host: ${TEJAS_GPON_BASE_URL:https://172.23.105.26:446}
+    host: ${TEJAS_SWITCH_BASE_URL:https://172.23.105.26:446}
     authentication:
-      username: ${TEJAS_GPON_USER:nbi_admin}
-      password: ${TEJAS_GPON_PASSWORD:Tejas@2025}
+      username: ${TEJAS_SWITCH_USER:nbi_admin}
+      password: ${TEJAS_SWITCH_PASSWORD:Tejas@2025}
     endpoints:
       - name: auth
         path: /nmsnbi-rest/tapi/data/context/auth-context/auth-token
@@ -40,11 +40,27 @@ config:
         host: https://172.23.105.26:446
         path: /nmsnbi-rest/tapi/data/context/topology-context/topology={uuid}/node
         method: GET
+      - name: get-link-list
+        host: https://172.23.105.26:446
+        path: /nmsnbi-rest/tapi/data/context/topology-context/topology={uuid}/link
+        method: GET
       - name: get-node-details
         host: https://172.23.105.26:446
-        path: /nmsnbi-rest/tapi/data/context/topology-context/topology=TTLEMS-GPON-1/node={nodeUuid}
+        path: /nmsnbi-rest/tapi/data/context/topology-context/topology=TTLSwitchEms/node={nodeUuid}
         method: GET
       - name: get-node-edge-points
         host: https://172.23.105.26:446
-        path: /nmsnbi-rest/tapi/data/context/topology-context/topology=TTLEMS-GPON-1/node={nodeUuid}/node-edge-point
+        path: /nmsnbi-rest/tapi/data/context/topology-context/topology=TTLSwitchEms/node={nodeUuid}/node-edge-point
+        method: GET
+      - name: get-node-link-details
+        host: https://172.23.105.26:446
+        path: /nmsnbi-rest/tapi/data/context/topology-context/topology=TTLSwitchEms/link={linkUuid}
+        method: GET
+      - name: get-ring-ringlets
+        host: https://172.23.105.26:446
+        path: /nmsnbi-rest/tapi/data/context/connectivity-context/erp
+        method: GET
+      - name: get-service
+        host: https://172.23.105.26:446
+        path: /nmsnbi-rest/tapi/data/context/connectivity-context/connectivity-services/filter
         method: GET

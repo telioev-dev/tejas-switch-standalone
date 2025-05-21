@@ -9,10 +9,10 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.teliolabs</groupId>
-    <artifactId>tejas-gpon-standalone</artifactId>
+    <artifactId>tejas-switch-standalone</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>tejas-gpon-standalone</name>
-    <description>tejas-gpon-standalone</description>
+    <name>tejas-switch-standalone</name>
+    <description>tejas-switch-standalone</description>
     <url/>
     <licenses>
         <license/>
@@ -141,8 +141,8 @@
                     <archive>
                         <manifest>
                             <addClasspath>true</addClasspath>
-                            <classpathPrefix>../lib.gpon/</classpathPrefix>
-                            <mainClass>com.teliolabs.tejas.gpon.TejasGponStandaloneApplication</mainClass>
+                            <classpathPrefix>../lib.l2swt/</classpathPrefix>
+                            <mainClass>com.teliolabs.tejas.l2swt.TejasSwitchStandaloneApplication</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
