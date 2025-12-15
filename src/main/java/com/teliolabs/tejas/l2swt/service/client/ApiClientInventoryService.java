@@ -310,7 +310,7 @@ public class ApiClientInventoryService extends BaseApiClientService {
             String aEndNode = "null", zEndNode = "null", aEndPort = "null";
             String aEndNodeObj = "null", zEndNodeObj = "null";
             String zEndPort = "null", topologyType = "null", circle = "null";
-            String uuid = "null";
+            String uuid = "null", ZEndCapacity = "null";
             ArrayList<AdditionalInformation> additionalInformations = getLinkDetails.getAdditionalIinformation();
 
             for (AdditionalInformation topologyaddinfo : additionalInformations) {
@@ -333,15 +333,10 @@ public class ApiClientInventoryService extends BaseApiClientService {
                         rate = "STM64";
                     } else if (rateCode.equals("78") || rateCode.equals("91") || rateCode.equals("90")) {
                         rate = "STM256";
-                        // } else if (rateCode.equals("1") || rateCode.equals("40") ||
-                        // rateCode.equals("41") || rateCode.equals("42")
-                        // || rateCode.equals("47") || rateCode.equals("49") || rateCode.equals("105")
-                        // || rateCode.equals("111") || rateCode.equals("113")) {
-                        // rate = "DWDM";
                     }
 
                 } else if (topologyaddinfo.valueName.equals("ZEndCapacity")) {
-                    rate = calculateRate(topologyaddinfo.value);
+                    ZEndCapacity = calculateRate(topologyaddinfo.value);
                 } else if (topologyaddinfo.valueName.equals("user-label")) {
                     userLabel = topologyaddinfo.value;
 
@@ -349,6 +344,10 @@ public class ApiClientInventoryService extends BaseApiClientService {
                     aEndPort = topologyaddinfo.value;
                 } else if (topologyaddinfo.valueName.equals("dest-tp-label")) {
                     zEndPort = topologyaddinfo.value;
+                }
+
+                if (ZEndCapacity.equals("1 GigE")) {
+                    rate = "1GigE";
                 }
 
             }
@@ -597,9 +596,9 @@ public class ApiClientInventoryService extends BaseApiClientService {
 
     private String calculateRate(String value) {
 
-        if (value.contains("1000")) {
+        if (value.equals("1000")) {
             return "1 GigE";
-        } else if (value.contains("10000")) {
+        } else if (value.equals("10000")) {
             return "10 GigE";
         }
         return "1 GigE";
