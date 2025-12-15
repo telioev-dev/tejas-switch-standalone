@@ -338,12 +338,13 @@ public class ApiClientInventoryService extends BaseApiClientService {
                         // || rateCode.equals("47") || rateCode.equals("49") || rateCode.equals("105")
                         // || rateCode.equals("111") || rateCode.equals("113")) {
                         // rate = "DWDM";
-                    } else {
-                        rate = "UNKNOWN";
                     }
 
+                } else if (topologyaddinfo.valueName.equals("ZEndCapacity")) {
+                    rate = calculateRate(topologyaddinfo.value);
                 } else if (topologyaddinfo.valueName.equals("user-label")) {
                     userLabel = topologyaddinfo.value;
+
                 } else if (topologyaddinfo.valueName.equals("src-tp-label")) {
                     aEndPort = topologyaddinfo.value;
                 } else if (topologyaddinfo.valueName.equals("dest-tp-label")) {
@@ -591,7 +592,17 @@ public class ApiClientInventoryService extends BaseApiClientService {
         if (matcher.find()) {
             return matcher.group(); // Return the first match
         }
-        return null; // No match found
+        return "1 GigE"; // No match found
+    }
+
+    private String calculateRate(String value) {
+
+        if (value.contains("1000")) {
+            return "1 GigE";
+        } else if (value.contains("10000")) {
+            return "10 GigE";
+        }
+        return "1 GigE";
     }
 
     public static String extractCircuitId(String input) {
