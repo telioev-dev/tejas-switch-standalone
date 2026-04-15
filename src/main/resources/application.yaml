@@ -15,8 +15,8 @@ config:
     name: TJ5100 NMS
     host: ${TEJAS_SWITCH_BASE_URL:https://172.23.105.26:446}
     authentication:
-      username: ${TEJAS_SWITCH_USER:nbi_admin}
-      password: ${TEJAS_SWITCH_PASSWORD:Tejas@2025}
+      username: ${TEJAS_SWITCH_USER:nbiua_ttl}
+      password: ${TEJAS_SWITCH_PASSWORD:Wuyx$N95}
     endpoints:
       - name: auth
         path: /nmsnbi-rest/tapi/data/context/auth-context/auth-token
