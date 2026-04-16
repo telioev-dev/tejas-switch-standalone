@@ -13,54 +13,54 @@ config:
   db-insert: true
   network-manager:
     name: TJ5100 NMS
-    host: ${TEJAS_SWITCH_BASE_URL:https://172.23.105.26:446}
+    host: ${TEJAS_SWITCH_BASE_URL}
     authentication:
-      username: ${TEJAS_SWITCH_USER:nbiua_ttl}
-      password: ${TEJAS_SWITCH_PASSWORD:Tejas@2026}
+      username: ${TEJAS_SWITCH_USER}
+      password: ${TEJAS_SWITCH_PASSWORD}
     endpoints:
       - name: auth
         path: /nmsnbi-rest/tapi/data/context/auth-context/auth-token
         method: POST
       - name: get-circuit-data
-        host: https://172.23.105.26:446
+        host: ${TEJAS_SWITCH_BASE_URL}
         path: /nmsnbi-rest/tapi/data/context/physical-context/device={node_uuid}/equipment
         method: GET
       - name: get-topology-context
-        host: https://172.23.105.26:446
+        host: ${TEJAS_SWITCH_BASE_URL}
         path: /nmsnbi-rest/tapi/data/context/topology-context/
         method: GET
       - name: get-nw-topology-service
-        host: https://172.23.105.26:446
+        host: ${TEJAS_SWITCH_BASE_URL}
         path: /nmsnbi-rest/tapi/data/context/topology-context/nw-topology-service
         method: GET
       - name: get-physical-context
-        host: https://172.23.105.26:446
+        host: ${TEJAS_SWITCH_BASE_URL}
         path: /nmsnbi-rest/tapi/data/context/physical-context
       - name: get-node-list
-        host: https://172.23.105.26:446
+        host: ${TEJAS_SWITCH_BASE_URL}
         path: /nmsnbi-rest/tapi/data/context/topology-context/topology={uuid}/node
         method: GET
       - name: get-link-list
-        host: https://172.23.105.26:446
+        host: ${TEJAS_SWITCH_BASE_URL}
         path: /nmsnbi-rest/tapi/data/context/topology-context/topology={uuid}/link
         method: GET
       - name: get-node-details
-        host: https://172.23.105.26:446
+        host: ${TEJAS_SWITCH_BASE_URL}
         path: /nmsnbi-rest/tapi/data/context/topology-context/topology=TTLSwitchEms/node={nodeUuid}
         method: GET
       - name: get-node-edge-points
-        host: https://172.23.105.26:446
+        host: ${TEJAS_SWITCH_BASE_URL}
         path: /nmsnbi-rest/tapi/data/context/topology-context/topology=TTLSwitchEms/node={nodeUuid}/node-edge-point
         method: GET
       - name: get-node-link-details
-        host: https://172.23.105.26:446
+        host: ${TEJAS_SWITCH_BASE_URL}
         path: /nmsnbi-rest/tapi/data/context/topology-context/topology=TTLSwitchEms/link={linkUuid}
         method: GET
       - name: get-ring-ringlets
-        host: https://172.23.105.26:446
+        host: ${TEJAS_SWITCH_BASE_URL}
         path: /nmsnbi-rest/tapi/data/context/connectivity-context/erp
         method: GET
       - name: get-service
-        host: https://172.23.105.26:446
+        host: ${TEJAS_SWITCH_BASE_URL}
         path: /nmsnbi-rest/tapi/data/context/connectivity-context/connectivity-services/filter
         method: GET
