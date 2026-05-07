@@ -306,14 +306,11 @@ public class ApiClientInventoryService extends BaseApiClientService {
          List<TopologyNodeDetail> getLinkDetailList = getLinkDetails();// done
         List<TopologyNodeDetail> getNodeNames = getPdDetails(); // done
         
-        List<String>list=Arrays.asList("TTLSwitchEms-5","TTLSwitchEms-2","TTLSwitchEms-1"
-            ,"TTLSwitchEms-3","TTLSwitchEms-4","TTLEMS-GPON-1","TTLEMS-GPON-2"
-        );
+        // List<String>list=Arrays.asList("TTLSwitchEms-5","TTLSwitchEms-2","TTLSwitchEms-1"
+        //     ,"TTLSwitchEms-3","TTLSwitchEms-4","TTLEMS-GPON-1","TTLEMS-GPON-2"
+        // );
 
-        for(String circles: list){
-
-       
-
+        // for(String circles: list){
          String aLinkCircle="";
         for(TopologyNodeDetail topoDetails: getLinkDetailList)
         {
@@ -324,6 +321,10 @@ public class ApiClientInventoryService extends BaseApiClientService {
             {
                 aLinkCircle=info.getValue();
             }
+            if(info.getValueName().equals("zend-object-name"))
+            {
+                zLinkCircle=info.getValue();
+            }
           }
         }
     
@@ -331,16 +332,16 @@ public class ApiClientInventoryService extends BaseApiClientService {
         log.info("linkCircleName: "+aLinkCircle +" storedCircle: "+circles);
 
         String vendor="";
-         if(aLinkCircle.contains(circles))
-            {
-               vendor=circles;
+        //  if(aLinkCircle.contains(circles))
+        //     {
+            //    vendor=circles;
         for (TopologyNodeDetail getLinkDetails : getLinkDetailList) {
             String trailId = "null", userLabel = "null", circuitId = "null", rate = "null";
             String aEndDropPort = "null", zEndDropPort = "null", topology = "null";
             String aEndDropNode = "null", zEndDropNode = "null", channel = "null";
             String aEndNode = "null", zEndNode = "null", aEndPort = "null";
             String aEndNodeObj = "null", zEndNodeObj = "null";
-            String zEndPort = "null", topologyType = "null", circle = circles;
+            String zEndPort = "null", topologyType = "null", circle = null;
             String uuid = "null", ZEndCapacity = "null";
             ArrayList<AdditionalInformation> additionalInformations = getLinkDetails.getAdditionalIinformation();
 
@@ -416,19 +417,26 @@ public class ApiClientInventoryService extends BaseApiClientService {
             LocalDateTime currentDateTime = LocalDateTime.now();
             String lastModified = currentDateTime.toString();
 
-          
+          if(aVendor.contains(GPON)){
+            circle="GPONEms";
+          }else if(aVendor.toLowerCase().contains(switch)){
+            circle="SwitchEms"
+          }else if (aVendor.toLowerCase().contains(switch)){
+            circle="PtnEms"
+          }
 
           
             
             // Collect data for topology
-            String[] row = { userLabel, rate, "Ethernet", "INNI Connectivity",vendor, aVendor, zVendor, aEndNode,
+            String[] row = { userLabel, rate, "Ethernet", "INNI Connectivity",aVendor, zVendor, aVendor, aEndNode,
                     zEndNode, aEndPort, zEndPort, circle, nativeEmsName, lastModified };
             topologyData.add(row);
 
             // Collect data for tunnel
 
         }
-            }}
+            // }
+            // }
 
         // Save data and write to CSV
         topologyRepo.truncateTable();
