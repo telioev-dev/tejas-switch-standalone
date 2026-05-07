@@ -534,7 +534,7 @@ public class ApiClientInventoryService extends BaseApiClientService {
         String lastModified = currentDateTime.toString();
 
         List<Root> serviceDetails = getServiceDetails();
-        List<TopologyNodeDetail> getNodeNames = getPdDetails(); // Move outside loop for efficiency
+        // List<TopologyNodeDetail> getNodeNames = getPdDetails(); // Move outside loop for efficiency
 
         for (Root serviceDetail : serviceDetails) {
             if (serviceDetail.getConnectivityService() != null) {
@@ -563,8 +563,9 @@ public class ApiClientInventoryService extends BaseApiClientService {
                                                 String nodeUuid = connectionEndPoint1.topologyUuid + "|"
                                                         + connectionEndPoint1.nodeUuid;
 
-                                                for (TopologyNodeDetail getNodeName : getNodeNames) {
-                                                    if (nodeUuid.equals(getNodeName.getUuid())) {
+                                            TopologyNodeDetail getNodeName = getPdNames(getNodeName.getUuid());
+
+                                                    
                                                         ArrayList<AdditionalInformation> nodeAdditionalInformations = getNodeName
                                                                 .getAdditionalIinformation();
                                                         if (nodeAdditionalInformations != null) {
@@ -592,8 +593,7 @@ public class ApiClientInventoryService extends BaseApiClientService {
                                                                 }
                                                             }
                                                         }
-                                                    }
-                                                }
+                                                
                                             }
                                         }
                                     }
