@@ -7,6 +7,8 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
+import static jdk.nashorn.internal.runtime.regexp.joni.Config.log;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor

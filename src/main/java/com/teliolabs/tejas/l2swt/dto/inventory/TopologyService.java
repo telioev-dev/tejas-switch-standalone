@@ -8,6 +8,7 @@ import javax.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.jcraft.jsch.Logger;
 import com.teliolabs.tejas.l2swt.domain.Connection;
 import com.teliolabs.tejas.l2swt.repository.TopologyRepo;
 
@@ -26,7 +27,7 @@ public class TopologyService {
         if (topologyData == null) {
             throw new IllegalArgumentException("Topology data cannot be null");
         }
-
+        System.out.println("size of topologyData: "+topologyData.size());
         List<Connection> connections = new ArrayList<>();
         for (String[] row : topologyData) {
             if (row == null || row.length < 13) {

@@ -38,23 +38,23 @@ config:
         path: /nmsnbi-rest/tapi/data/context/physical-context
       - name: get-node-list
         host: ${TEJAS_SWITCH_BASE_URL}
-        path: /nmsnbi-rest/tapi/data/context/topology-context/topology={uuid}/node
+        path: /nmsnbi-rest/tapi/data/context/topology-context/topology/node
         method: GET
       - name: get-link-list
         host: ${TEJAS_SWITCH_BASE_URL}
-        path: /nmsnbi-rest/tapi/data/context/topology-context/topology={uuid}/link
+        path: /nmsnbi-rest/tapi/data/context/topology-context/topology/link
         method: GET
       - name: get-node-details
         host: ${TEJAS_SWITCH_BASE_URL}
-        path: /nmsnbi-rest/tapi/data/context/topology-context/topology=TTLSwitchEms/node={nodeUuid}
+        path: /nmsnbi-rest/tapi/data/context/topology-context/topology/node={nodeUuid}
         method: GET
       - name: get-node-edge-points
         host: ${TEJAS_SWITCH_BASE_URL}
-        path: /nmsnbi-rest/tapi/data/context/topology-context/topology=TTLSwitchEms/node={nodeUuid}/node-edge-point
+        path: /nmsnbi-rest/tapi/data/context/topology-context/topology/node={nodeUuid}/node-edge-point
         method: GET
       - name: get-node-link-details
         host: ${TEJAS_SWITCH_BASE_URL}
-        path: /nmsnbi-rest/tapi/data/context/topology-context/topology=TTLSwitchEms/link={linkUuid}
+        path: /nmsnbi-rest/tapi/data/context/topology-context/topology/link={linkUuid}
         method: GET
       - name: get-ring-ringlets
         host: ${TEJAS_SWITCH_BASE_URL}

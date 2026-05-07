@@ -6,6 +6,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -141,6 +142,7 @@ public class ApiClientInventoryService extends BaseApiClientService {
     public List<Root> getNodeList() {
         // Get Network Manager Config
         NetworkManagerConfig networkManager = applicationConfig.getNetworkManager();
+          List<String> topologies = networkManager.getTopologies();
 
         // Fetch the correct endpoint for getting node list
         Endpoint endpoint = networkManager.getEndpoints().stream()
@@ -154,7 +156,7 @@ public class ApiClientInventoryService extends BaseApiClientService {
                 .build()
                 .method(resolveMethod(endpoint))
                 .uri(uriBuilder -> uriBuilder.path(getEndpointPath(endpoint))
-                        .build("TTLSwitchEms"))
+                        .build())
                 .headers(headers -> headers.setBearerAuth(applicationContext.getAuthContext().getAccessToken()))
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<List<Root>>() {
@@ -182,7 +184,7 @@ public class ApiClientInventoryService extends BaseApiClientService {
                 .build()
                 .method(resolveMethod(endpoint))
                 .uri(uriBuilder -> uriBuilder.path(getEndpointPath(endpoint))
-                        .build("TTLSwitchEms"))
+                        .build())
                 .headers(headers -> headers.setBearerAuth(applicationContext.getAuthContext().getAccessToken()))
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<List<Root>>() {
@@ -260,7 +262,7 @@ public class ApiClientInventoryService extends BaseApiClientService {
 
         return nodeList;
     }
-
+// gpon,switch,ptn
     public List<TopologyNodeDetail> getLinkDetails() {
         // Get Network Manager Config
         List<Root> getLinkList = getLinkList();
@@ -300,16 +302,45 @@ public class ApiClientInventoryService extends BaseApiClientService {
     public void getTopologyData() {
         List<String[]> topologyData = new ArrayList<>();
         List<String[]> tunnelData = new ArrayList<>();
-        List<TopologyNodeDetail> getLinkDetailList = getLinkDetails();
-        List<TopologyNodeDetail> getNodeNames = getPdDetails();
 
+         List<TopologyNodeDetail> getLinkDetailList = getLinkDetails();// done
+        List<TopologyNodeDetail> getNodeNames = getPdDetails(); // done
+        
+        List<String>list=Arrays.asList("TTLSwitchEms-5","TTLSwitchEms-2","TTLSwitchEms-1"
+            ,"TTLSwitchEms-3","TTLSwitchEms-4","TTLEMS-GPON-1","TTLEMS-GPON-2"
+        );
+
+        for(String circles: list){
+
+       
+
+         String aLinkCircle="";
+        for(TopologyNodeDetail topoDetails: getLinkDetailList)
+        {
+          ArrayList<AdditionalInformation>additionalInfo= topoDetails.getAdditionalIinformation();
+          for(AdditionalInformation info: additionalInfo)
+          {
+            if(info.getValueName().equals("aend-object-name"))
+            {
+                aLinkCircle=info.getValue();
+            }
+          }
+        }
+    
+
+        log.info("linkCircleName: "+aLinkCircle +" storedCircle: "+circles);
+
+        String vendor="";
+         if(aLinkCircle.contains(circles))
+            {
+               vendor=circles;
         for (TopologyNodeDetail getLinkDetails : getLinkDetailList) {
             String trailId = "null", userLabel = "null", circuitId = "null", rate = "null";
             String aEndDropPort = "null", zEndDropPort = "null", topology = "null";
             String aEndDropNode = "null", zEndDropNode = "null", channel = "null";
             String aEndNode = "null", zEndNode = "null", aEndPort = "null";
             String aEndNodeObj = "null", zEndNodeObj = "null";
-            String zEndPort = "null", topologyType = "null", circle = "null";
+            String zEndPort = "null", topologyType = "null", circle = circles;
             String uuid = "null", ZEndCapacity = "null";
             ArrayList<AdditionalInformation> additionalInformations = getLinkDetails.getAdditionalIinformation();
 
@@ -353,9 +384,12 @@ public class ApiClientInventoryService extends BaseApiClientService {
             }
 
             String nativeEmsName = getLinkDetails.getUuid();
+           
             ArrayList<NodeEdgePoint> nodeEdgePoints = getLinkDetails.getNodeEdgePoint();
             aEndNodeObj = nodeEdgePoints.get(0).getNodeUuid();
             zEndNodeObj = nodeEdgePoints.get(1).getNodeUuid();
+            String aVendor=nodeEdgePoints.get(0).getTopologyUuid();
+            String zVendor=nodeEdgePoints.get(1).getTopologyUuid();
             for (TopologyNodeDetail getNodeName : getNodeNames) {
                 if (getNodeName.getUuid().equals(aEndNodeObj)) {
                     ArrayList<AdditionalInformation> nodeAdditionalInformations = getNodeName
@@ -376,20 +410,25 @@ public class ApiClientInventoryService extends BaseApiClientService {
                 }
             }
 
-            circle = aEndNode.split("_")[0];
+            
 
             // Set default values if necessary
             LocalDateTime currentDateTime = LocalDateTime.now();
             String lastModified = currentDateTime.toString();
 
+          
+
+          
+            
             // Collect data for topology
-            String[] row = { userLabel, rate, "Ethernet", "INNI Connectivity", "SWITCH", "SWITCH", "SWITCH", aEndNode,
+            String[] row = { userLabel, rate, "Ethernet", "INNI Connectivity",vendor, aVendor, zVendor, aEndNode,
                     zEndNode, aEndPort, zEndPort, circle, nativeEmsName, lastModified };
             topologyData.add(row);
 
             // Collect data for tunnel
 
         }
+            }}
 
         // Save data and write to CSV
         topologyRepo.truncateTable();

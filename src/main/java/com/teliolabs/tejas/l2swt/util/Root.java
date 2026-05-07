@@ -34,4 +34,6 @@ public class Root {
     public Erp erp;
     @JsonProperty("connectivity-service") 
     public ConnectivityService connectivityService;
+
+     private String topologyUuid;
 }

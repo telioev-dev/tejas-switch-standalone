@@ -10,4 +10,5 @@ public class NetworkManagerConfig {
     private String host;
     private Authentication authentication;
     private List<Endpoint> endpoints;
+    private List<String> topologies;
 }
