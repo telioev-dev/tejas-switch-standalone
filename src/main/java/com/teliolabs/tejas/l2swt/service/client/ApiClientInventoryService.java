@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
@@ -58,6 +59,7 @@ public class ApiClientInventoryService extends BaseApiClientService {
     private final TopologyRepo topologyRepo;
     private final TunnelRepo tunnelRepo;
     private final TrailRepo trailRepo;
+   
 
     @Autowired
     public ApiClientInventoryService(ApplicationContext applicationContext, WebClient.Builder webClientBuilder,
@@ -78,40 +80,80 @@ public class ApiClientInventoryService extends BaseApiClientService {
 
     // Service method with token refresh logic
     public List<TopologyNodeDetail> getPdDetails() {
-        // Get Network Manager Config
-        List<Root> nodeLists = getNodeList();
-        List<TopologyNodeDetail> pdDetailsList = new ArrayList<>();
 
-        TopologyNodeDetail nodesList = null;
-        for (Root nodeList : nodeLists) {
-            String uuid = nodeList.getUuid();
-            NetworkManagerConfig networkManager = applicationConfig.getNetworkManager();
-            // Fetch the correct endpoint for getting node list
-            Endpoint endpoint = networkManager.getEndpoints().stream()
-                    .filter(e -> e.getName().equals(EndpointConstants.GET_NODE_DETAILS))
-                    .findFirst()
-                    .orElseThrow(() -> new IllegalArgumentException("Endpoint not found"));
+    // Authenticate once
+  
 
-            // Build the WebClient and make the request
-            nodesList = webClientBuilder
+    // Fetch all node UUIDs
+    List<Root> nodeLists = getNodeList();
+
+    if (nodeLists == null || nodeLists.isEmpty()) {
+        return new ArrayList<>();
+    }
+
+    // Fetch endpoint once
+    NetworkManagerConfig networkManager =
+            applicationConfig.getNetworkManager();
+
+    Endpoint endpoint = networkManager.getEndpoints().stream()
+            .filter(e ->
+                    e.getName().equals(
+                            EndpointConstants.GET_NODE_DETAILS))
+            .findFirst()
+            .orElseThrow(() ->
+                    new IllegalArgumentException(
+                            "GET_NODE_DETAILS endpoint not found"));
+
+    List<TopologyNodeDetail> pdDetailsList = new ArrayList<>();
+
+    for (Root node : nodeLists) {
+
+        if (node == null || node.getUuid() == null) {
+            continue;
+        }
+
+        String uuid = node.getUuid();
+
+        try {
+
+            TopologyNodeDetail nodeDetail = webClientBuilder
                     .baseUrl(getEndpointHost(endpoint))
                     .build()
                     .method(resolveMethod(endpoint))
-                    .uri(uriBuilder -> uriBuilder.path(getEndpointPath(endpoint))
-                            .build(uuid))
-                    .headers(headers -> headers.setBearerAuth(applicationContext.getAuthContext().getAccessToken()))
+                    .uri(uriBuilder ->
+                            uriBuilder
+                                    .path(getEndpointPath(endpoint))
+                                    .build(uuid))
+                    .headers(headers ->
+                            headers.setBearerAuth(  apiClientAuthService.getValidToken()))
+                                           
                     .retrieve()
-                    .bodyToMono(new ParameterizedTypeReference<TopologyNodeDetail>() {
-                    })
-                    .block(); // Blocking call, consider using async if possible
-            if (nodesList != null) {
-                pdDetailsList.add(nodesList);
+                    .bodyToMono(
+                            new ParameterizedTypeReference<TopologyNodeDetail>() {
+                            })
+                    .block();
+
+            if (nodeDetail != null) {
+                pdDetailsList.add(nodeDetail);
             }
 
-        }
+        } catch (Exception e) {
 
-        return pdDetailsList;
+            log.error(
+                    "Failed to fetch node details for UUID: {}",
+                    uuid,
+                    e
+            );
+        }
     }
+
+    log.info(
+            "Successfully fetched {} node details",
+            pdDetailsList.size()
+    );
+
+    return pdDetailsList;
+}
 
     public TopologyNodeDetail getPdNames(String uuid) {
 
@@ -124,6 +166,8 @@ public class ApiClientInventoryService extends BaseApiClientService {
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Endpoint not found"));
 
+                System.out.println("reauthentiat insdie the pdNames");
+        
         // Build the WebClient and make the request
         nodesList = webClientBuilder
                 .baseUrl(getEndpointHost(endpoint))
@@ -131,7 +175,7 @@ public class ApiClientInventoryService extends BaseApiClientService {
                 .method(resolveMethod(endpoint))
                 .uri(uriBuilder -> uriBuilder.path(getEndpointPath(endpoint))
                         .build(uuid))
-                .headers(headers -> headers.setBearerAuth(applicationContext.getAuthContext().getAccessToken()))
+                .headers(headers ->  headers.setBearerAuth(  apiClientAuthService.getValidToken()))
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<TopologyNodeDetail>() {
                 })
@@ -142,7 +186,7 @@ public class ApiClientInventoryService extends BaseApiClientService {
     public List<Root> getNodeList() {
         // Get Network Manager Config
         NetworkManagerConfig networkManager = applicationConfig.getNetworkManager();
-        List<String> topologies = networkManager.getTopologies();
+          List<String> topologies = networkManager.getTopologies();
 
         // Fetch the correct endpoint for getting node list
         Endpoint endpoint = networkManager.getEndpoints().stream()
@@ -150,6 +194,8 @@ public class ApiClientInventoryService extends BaseApiClientService {
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Endpoint not found"));
 
+                System.out.println("calling nodeList autheticate");
+          
         // Build the WebClient and make the request
         List<Root> nodeList = webClientBuilder
                 .baseUrl(getEndpointHost(endpoint))
@@ -157,7 +203,9 @@ public class ApiClientInventoryService extends BaseApiClientService {
                 .method(resolveMethod(endpoint))
                 .uri(uriBuilder -> uriBuilder.path(getEndpointPath(endpoint))
                         .build())
-                .headers(headers -> headers.setBearerAuth(applicationContext.getAuthContext().getAccessToken()))
+                .headers(headers ->
+    headers.setBearerAuth(
+        apiClientAuthService.getValidToken()))
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<List<Root>>() {
                 })
@@ -178,6 +226,8 @@ public class ApiClientInventoryService extends BaseApiClientService {
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Endpoint not found"));
 
+                System.out.println("apiClientAuthService.authenticate()");
+         
         // Build the WebClient and make the request
         List<Root> nodeList = webClientBuilder
                 .baseUrl(getEndpointHost(endpoint))
@@ -185,7 +235,9 @@ public class ApiClientInventoryService extends BaseApiClientService {
                 .method(resolveMethod(endpoint))
                 .uri(uriBuilder -> uriBuilder.path(getEndpointPath(endpoint))
                         .build())
-                .headers(headers -> headers.setBearerAuth(applicationContext.getAuthContext().getAccessToken()))
+                .headers(headers ->
+    headers.setBearerAuth(
+        apiClientAuthService.getValidToken()))
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<List<Root>>() {
                 })
@@ -207,6 +259,7 @@ public class ApiClientInventoryService extends BaseApiClientService {
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Endpoint not found"));
 
+                
         for (Root node : nodeLists) {
             String uuid = node.getUuid();
 
@@ -222,7 +275,9 @@ public class ApiClientInventoryService extends BaseApiClientService {
                             .queryParam("nodeuuid", uuid)
                             .queryParam("size", 500)
                             .build())
-                    .headers(headers -> headers.setBearerAuth(applicationContext.getAuthContext().getAccessToken()))
+                    .headers(headers ->
+    headers.setBearerAuth(
+        apiClientAuthService.getValidToken()))
                     .retrieve()
                     .bodyToMono(new ParameterizedTypeReference<List<Root>>() {
                     })
@@ -252,7 +307,9 @@ public class ApiClientInventoryService extends BaseApiClientService {
                         .path(getEndpointPath(endpoint))
                         .queryParam("size", 500)
                         .build())
-                .headers(headers -> headers.setBearerAuth(applicationContext.getAuthContext().getAccessToken()))
+               .headers(headers ->
+    headers.setBearerAuth(
+        apiClientAuthService.getValidToken()))
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<List<Root>>() {
                 })
@@ -262,8 +319,7 @@ public class ApiClientInventoryService extends BaseApiClientService {
 
         return nodeList;
     }
-
-    // gpon,switch,ptn
+// gpon,switch,ptn
     public List<TopologyNodeDetail> getLinkDetails() {
         // Get Network Manager Config
         List<Root> getLinkList = getLinkList();
@@ -286,7 +342,9 @@ public class ApiClientInventoryService extends BaseApiClientService {
                     .method(resolveMethod(endpoint))
                     .uri(uriBuilder -> uriBuilder.path(getEndpointPath(endpoint))
                             .build(linkUuid))
-                    .headers(headers -> headers.setBearerAuth(applicationContext.getAuthContext().getAccessToken()))
+                    .headers(headers ->
+    headers.setBearerAuth(
+        apiClientAuthService.getValidToken()))
                     .retrieve()
                     .bodyToMono(new ParameterizedTypeReference<TopologyNodeDetail>() {
                     })
