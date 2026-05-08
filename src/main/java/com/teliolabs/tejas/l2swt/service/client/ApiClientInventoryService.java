@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
@@ -58,6 +59,7 @@ public class ApiClientInventoryService extends BaseApiClientService {
     private final TopologyRepo topologyRepo;
     private final TunnelRepo tunnelRepo;
     private final TrailRepo trailRepo;
+   
 
     @Autowired
     public ApiClientInventoryService(ApplicationContext applicationContext, WebClient.Builder webClientBuilder,
@@ -78,40 +80,80 @@ public class ApiClientInventoryService extends BaseApiClientService {
 
     // Service method with token refresh logic
     public List<TopologyNodeDetail> getPdDetails() {
-        // Get Network Manager Config
-        List<Root> nodeLists = getNodeList();
-        List<TopologyNodeDetail> pdDetailsList = new ArrayList<>();
 
-        TopologyNodeDetail nodesList = null;
-        for (Root nodeList : nodeLists) {
-            String uuid = nodeList.getUuid();
-            NetworkManagerConfig networkManager = applicationConfig.getNetworkManager();
-            // Fetch the correct endpoint for getting node list
-            Endpoint endpoint = networkManager.getEndpoints().stream()
-                    .filter(e -> e.getName().equals(EndpointConstants.GET_NODE_DETAILS))
-                    .findFirst()
-                    .orElseThrow(() -> new IllegalArgumentException("Endpoint not found"));
+    // Authenticate once
+  
 
-            // Build the WebClient and make the request
-            nodesList = webClientBuilder
+    // Fetch all node UUIDs
+    List<Root> nodeLists = getNodeList();
+
+    if (nodeLists == null || nodeLists.isEmpty()) {
+        return new ArrayList<>();
+    }
+
+    // Fetch endpoint once
+    NetworkManagerConfig networkManager =
+            applicationConfig.getNetworkManager();
+
+    Endpoint endpoint = networkManager.getEndpoints().stream()
+            .filter(e ->
+                    e.getName().equals(
+                            EndpointConstants.GET_NODE_DETAILS))
+            .findFirst()
+            .orElseThrow(() ->
+                    new IllegalArgumentException(
+                            "GET_NODE_DETAILS endpoint not found"));
+
+    List<TopologyNodeDetail> pdDetailsList = new ArrayList<>();
+
+    for (Root node : nodeLists) {
+
+        if (node == null || node.getUuid() == null) {
+            continue;
+        }
+
+        String uuid = node.getUuid();
+
+        try {
+
+            TopologyNodeDetail nodeDetail = webClientBuilder
                     .baseUrl(getEndpointHost(endpoint))
                     .build()
                     .method(resolveMethod(endpoint))
-                    .uri(uriBuilder -> uriBuilder.path(getEndpointPath(endpoint))
-                            .build(uuid))
-                    .headers(headers -> headers.setBearerAuth(applicationContext.getAuthContext().getAccessToken()))
+                    .uri(uriBuilder ->
+                            uriBuilder
+                                    .path(getEndpointPath(endpoint))
+                                    .build(uuid))
+                    .headers(headers ->
+                            headers.setBearerAuth(  apiClientAuthService.getValidToken()))
+                                           
                     .retrieve()
-                    .bodyToMono(new ParameterizedTypeReference<TopologyNodeDetail>() {
-                    })
-                    .block(); // Blocking call, consider using async if possible
-            if (nodesList != null) {
-                pdDetailsList.add(nodesList);
+                    .bodyToMono(
+                            new ParameterizedTypeReference<TopologyNodeDetail>() {
+                            })
+                    .block();
+
+            if (nodeDetail != null) {
+                pdDetailsList.add(nodeDetail);
             }
 
-        }
+        } catch (Exception e) {
 
-        return pdDetailsList;
+            log.error(
+                    "Failed to fetch node details for UUID: {}",
+                    uuid,
+                    e
+            );
+        }
     }
+
+    log.info(
+            "Successfully fetched {} node details",
+            pdDetailsList.size()
+    );
+
+    return pdDetailsList;
+}
 
     public TopologyNodeDetail getPdNames(String uuid) {
 
@@ -124,6 +166,8 @@ public class ApiClientInventoryService extends BaseApiClientService {
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Endpoint not found"));
 
+                System.out.println("reauthentiat insdie the pdNames");
+        
         // Build the WebClient and make the request
         nodesList = webClientBuilder
                 .baseUrl(getEndpointHost(endpoint))
@@ -131,7 +175,7 @@ public class ApiClientInventoryService extends BaseApiClientService {
                 .method(resolveMethod(endpoint))
                 .uri(uriBuilder -> uriBuilder.path(getEndpointPath(endpoint))
                         .build(uuid))
-                .headers(headers -> headers.setBearerAuth(applicationContext.getAuthContext().getAccessToken()))
+                .headers(headers ->  headers.setBearerAuth(  apiClientAuthService.getValidToken()))
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<TopologyNodeDetail>() {
                 })
@@ -150,6 +194,8 @@ public class ApiClientInventoryService extends BaseApiClientService {
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Endpoint not found"));
 
+                System.out.println("calling nodeList autheticate");
+          
         // Build the WebClient and make the request
         List<Root> nodeList = webClientBuilder
                 .baseUrl(getEndpointHost(endpoint))
@@ -157,7 +203,9 @@ public class ApiClientInventoryService extends BaseApiClientService {
                 .method(resolveMethod(endpoint))
                 .uri(uriBuilder -> uriBuilder.path(getEndpointPath(endpoint))
                         .build())
-                .headers(headers -> headers.setBearerAuth(applicationContext.getAuthContext().getAccessToken()))
+                .headers(headers ->
+    headers.setBearerAuth(
+        apiClientAuthService.getValidToken()))
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<List<Root>>() {
                 })
@@ -178,6 +226,8 @@ public class ApiClientInventoryService extends BaseApiClientService {
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Endpoint not found"));
 
+                System.out.println("apiClientAuthService.authenticate()");
+         
         // Build the WebClient and make the request
         List<Root> nodeList = webClientBuilder
                 .baseUrl(getEndpointHost(endpoint))
@@ -185,7 +235,9 @@ public class ApiClientInventoryService extends BaseApiClientService {
                 .method(resolveMethod(endpoint))
                 .uri(uriBuilder -> uriBuilder.path(getEndpointPath(endpoint))
                         .build())
-                .headers(headers -> headers.setBearerAuth(applicationContext.getAuthContext().getAccessToken()))
+                .headers(headers ->
+    headers.setBearerAuth(
+        apiClientAuthService.getValidToken()))
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<List<Root>>() {
                 })
@@ -207,6 +259,7 @@ public class ApiClientInventoryService extends BaseApiClientService {
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Endpoint not found"));
 
+                
         for (Root node : nodeLists) {
             String uuid = node.getUuid();
 
@@ -222,7 +275,9 @@ public class ApiClientInventoryService extends BaseApiClientService {
                             .queryParam("nodeuuid", uuid)
                             .queryParam("size", 500)
                             .build())
-                    .headers(headers -> headers.setBearerAuth(applicationContext.getAuthContext().getAccessToken()))
+                    .headers(headers ->
+    headers.setBearerAuth(
+        apiClientAuthService.getValidToken()))
                     .retrieve()
                     .bodyToMono(new ParameterizedTypeReference<List<Root>>() {
                     })
@@ -252,7 +307,9 @@ public class ApiClientInventoryService extends BaseApiClientService {
                         .path(getEndpointPath(endpoint))
                         .queryParam("size", 500)
                         .build())
-                .headers(headers -> headers.setBearerAuth(applicationContext.getAuthContext().getAccessToken()))
+               .headers(headers ->
+    headers.setBearerAuth(
+        apiClientAuthService.getValidToken()))
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<List<Root>>() {
                 })
@@ -285,7 +342,9 @@ public class ApiClientInventoryService extends BaseApiClientService {
                     .method(resolveMethod(endpoint))
                     .uri(uriBuilder -> uriBuilder.path(getEndpointPath(endpoint))
                             .build(linkUuid))
-                    .headers(headers -> headers.setBearerAuth(applicationContext.getAuthContext().getAccessToken()))
+                    .headers(headers ->
+    headers.setBearerAuth(
+        apiClientAuthService.getValidToken()))
                     .retrieve()
                     .bodyToMono(new ParameterizedTypeReference<TopologyNodeDetail>() {
                     })
@@ -299,227 +358,353 @@ public class ApiClientInventoryService extends BaseApiClientService {
         return topologyDetails;
     }
 
-    public void getTopologyData() {
-        List<String[]> topologyData = new ArrayList<>();
-        List<String[]> tunnelData = new ArrayList<>();
+   public void getTopologyData() {
 
-         List<TopologyNodeDetail> getLinkDetailList = getLinkDetails();// done
-        
-        // List<String>list=Arrays.asList("TTLSwitchEms-5","TTLSwitchEms-2","TTLSwitchEms-1"
-        //     ,"TTLSwitchEms-3","TTLSwitchEms-4","TTLEMS-GPON-1","TTLEMS-GPON-2"
-        // );
+    List<String[]> topologyData = new ArrayList<>();
 
-        // for(String circles: list){
-         String aLinkCircle="";
-        for(TopologyNodeDetail topoDetails: getLinkDetailList)
-        {
-          ArrayList<AdditionalInformation>additionalInfo= topoDetails.getAdditionalIinformation();
-          for(AdditionalInformation info: additionalInfo)
-          {
-            if(info.getValueName().equals("aend-object-name"))
-            {
-                aLinkCircle=info.getValue();
-            }
-            if(info.getValueName().equals("zend-object-name"))
-            {
-                zLinkCircle=info.getValue();
-            }
-          }
-        }
-    
+    // Fetch all links once
+    List<TopologyNodeDetail> getLinkDetailList = getLinkDetails();
 
-        log.info("linkCircleName: "+aLinkCircle +" storedCircle: "+circles);
+    // Fetch all node details once
+    List<TopologyNodeDetail> allNodes = getPdDetails();
 
-        String vendor="";
-        //  if(aLinkCircle.contains(circles))
-        //     {
-            //    vendor=circles;
-        for (TopologyNodeDetail getLinkDetails : getLinkDetailList) {
-            String trailId = "null", userLabel = "null", circuitId = "null", rate = "null";
-            String aEndDropPort = "null", zEndDropPort = "null", topology = "null";
-            String aEndDropNode = "null", zEndDropNode = "null", channel = "null";
-            String aEndNode = "null", zEndNode = "null", aEndPort = "null";
-            String aEndNodeObj = "null", zEndNodeObj = "null";
-            String zEndPort = "null", topologyType = "null", circle = null;
-            String uuid = "null", ZEndCapacity = "null";
-            ArrayList<AdditionalInformation> additionalInformations = getLinkDetails.getAdditionalIinformation();
+    // Create UUID -> Node map
+    Map<String, TopologyNodeDetail> nodeMap =
+            allNodes.stream()
+                    .collect(Collectors.toMap(
+                            TopologyNodeDetail::getUuid,
+                            node -> node
+                    ));
 
-            for (AdditionalInformation topologyaddinfo : additionalInformations) {
-                if (topologyaddinfo.valueName.equals("layer-rate")) {
-                    String rateCode = topologyaddinfo.value;
-                    if (rateCode.contains("19")) {
-                        rate = "STM-0";
-                    } else if (rateCode.equals("19")) {
-                        rate = "STM0";
-                    } else if (rateCode.equals("73") || rateCode.equals("25") || rateCode.equals("20")
-                            || rateCode.equals("93")) {
-                        rate = "STM1";
-                    } else if (rateCode.equals("74") || rateCode.equals("21") || rateCode.equals("26")) {
-                        rate = "STM4";
-                    } else if (rateCode.equals("75") || rateCode.equals("89") || rateCode.equals("88")) {
-                        rate = "STM8";
-                    } else if (rateCode.equals("76") || rateCode.equals("22") || rateCode.equals("27")) {
-                        rate = "STM16";
-                    } else if (rateCode.equals("77") || rateCode.equals("28") || rateCode.equals("23")) {
-                        rate = "STM64";
-                    } else if (rateCode.equals("78") || rateCode.equals("91") || rateCode.equals("90")) {
-                        rate = "STM256";
-                    }
+    for (TopologyNodeDetail getLinkDetails : getLinkDetailList) {
 
-                } else if (topologyaddinfo.valueName.equals("ZEndCapacity")) {
-                    ZEndCapacity = calculateRate(topologyaddinfo.value);
-                } else if (topologyaddinfo.valueName.equals("user-label")) {
-                    userLabel = topologyaddinfo.value;
+        String userLabel = "null";
+        String rate = "null";
+        String aEndPort = "null";
+        String zEndPort = "null";
+        String aEndNode = "null";
+        String zEndNode = "null";
+        String aEndNodeObj;
+        String zEndNodeObj;
+        String circle = null;
+        String ZEndCapacity = "null";
 
-                } else if (topologyaddinfo.valueName.equals("src-tp-label")) {
-                    aEndPort = topologyaddinfo.value;
-                } else if (topologyaddinfo.valueName.equals("dest-tp-label")) {
-                    zEndPort = topologyaddinfo.value;
+        ArrayList<AdditionalInformation> additionalInformations =
+                getLinkDetails.getAdditionalIinformation();
+
+        // Extract link additional info
+        for (AdditionalInformation topologyaddinfo : additionalInformations) {
+
+            if ("layer-rate".equals(topologyaddinfo.valueName)) {
+
+                String rateCode = topologyaddinfo.value;
+
+                if (rateCode.contains("19")) {
+                    rate = "STM-0";
+                } else if (rateCode.equals("73") || rateCode.equals("25")
+                        || rateCode.equals("20") || rateCode.equals("93")) {
+                    rate = "STM1";
+                } else if (rateCode.equals("74")
+                        || rateCode.equals("21")
+                        || rateCode.equals("26")) {
+                    rate = "STM4";
+                } else if (rateCode.equals("75")
+                        || rateCode.equals("89")
+                        || rateCode.equals("88")) {
+                    rate = "STM8";
+                } else if (rateCode.equals("76")
+                        || rateCode.equals("22")
+                        || rateCode.equals("27")) {
+                    rate = "STM16";
+                } else if (rateCode.equals("77")
+                        || rateCode.equals("28")
+                        || rateCode.equals("23")) {
+                    rate = "STM64";
+                } else if (rateCode.equals("78")
+                        || rateCode.equals("91")
+                        || rateCode.equals("90")) {
+                    rate = "STM256";
                 }
 
-                if (ZEndCapacity.equals("1 GigE")) {
-                    rate = "1GigE";
-                }
+            } else if ("ZEndCapacity".equals(topologyaddinfo.valueName)) {
 
+                ZEndCapacity = calculateRate(topologyaddinfo.value);
+
+            } else if ("user-label".equals(topologyaddinfo.valueName)) {
+
+                userLabel = topologyaddinfo.value;
+
+            } else if ("src-tp-label".equals(topologyaddinfo.valueName)) {
+
+                aEndPort = topologyaddinfo.value;
+
+            } else if ("dest-tp-label".equals(topologyaddinfo.valueName)) {
+
+                zEndPort = topologyaddinfo.value;
             }
 
-            String nativeEmsName = getLinkDetails.getUuid();
-           
-            ArrayList<NodeEdgePoint> nodeEdgePoints = getLinkDetails.getNodeEdgePoint();
-            aEndNodeObj = nodeEdgePoints.get(0).getNodeUuid();
-            zEndNodeObj = nodeEdgePoints.get(1).getNodeUuid();
-            String aVendor=nodeEdgePoints.get(0).getTopologyUuid();
-            String zVendor=nodeEdgePoints.get(1).getTopologyUuid();
-            TopologyNodeDetail getANodeNames = getPdNames(aEndNodeObj);
-            TopologyNodeDetail getZNodeNames = getPdNames(zEndNodeObj);
-                    ArrayList<AdditionalInformation> nodeAdditionalInformations = getANodeNames
-                            .getAdditionalIinformation();
-                    for (AdditionalInformation nodeAdditionalInformation : nodeAdditionalInformations) {
-                        if (nodeAdditionalInformation.valueName.equals("nativeEMSName")) {
-                            aEndNode = nodeAdditionalInformation.value;
-                        }
-                    }
-                    ArrayList<AdditionalInformation> nodeAdditionalInformations = getZNodeNames
-                            .getAdditionalIinformation();
-                    for (AdditionalInformation nodeAdditionalInformation : nodeAdditionalInformations) {
-                        if (nodeAdditionalInformation.valueName.equals("nativeEMSName")) {
-                            zEndNode = nodeAdditionalInformation.value;
-                        }
-                    }
-
-            // Set default values if necessary
-            LocalDateTime currentDateTime = LocalDateTime.now();
-            String lastModified = currentDateTime.toString();
-
-          if(aVendor.contains(GPON)){
-            circle="GPONEms";
-          }else if(aVendor.toLowerCase().contains(switch)){
-            circle="SwitchEms"
-          }else if (aVendor.toLowerCase().contains(switch)){
-            circle="PtnEms"
-          }
-
-          
-            
-            // Collect data for topology
-            String[] row = { userLabel, rate, "Ethernet", "INNI Connectivity",aVendor, zVendor, aVendor, aEndNode,
-                    zEndNode, aEndPort, zEndPort, circle, nativeEmsName, lastModified };
-            topologyData.add(row);
-
-            // Collect data for tunnel
-
+            if ("1 GigE".equals(ZEndCapacity)) {
+                rate = "1GigE";
+            }
         }
-            // }
-            // }
 
-        // Save data and write to CSV
-        topologyRepo.truncateTable();
-        topologyService.saveTopologyData(topologyData);
-        // writeCsv(topologyData, tunnelData);
+        String nativeEmsName = getLinkDetails.getUuid();
+
+        // Node edge points
+        ArrayList<NodeEdgePoint> nodeEdgePoints =
+                getLinkDetails.getNodeEdgePoint();
+
+        aEndNodeObj = nodeEdgePoints.get(0).getNodeUuid();
+        zEndNodeObj = nodeEdgePoints.get(1).getNodeUuid();
+
+        String aVendor = nodeEdgePoints.get(0).getTopologyUuid();
+        String zVendor = nodeEdgePoints.get(1).getTopologyUuid();
+
+        // Fetch node details from map instead of API call
+        TopologyNodeDetail aNodeDetail = nodeMap.get(aEndNodeObj);
+        TopologyNodeDetail zNodeDetail = nodeMap.get(zEndNodeObj);
+
+        // A-End node name
+        if (aNodeDetail != null
+                && aNodeDetail.getAdditionalIinformation() != null) {
+
+            for (AdditionalInformation info :
+                    aNodeDetail.getAdditionalIinformation()) {
+
+                if ("nativeEMSName".equals(info.valueName)) {
+                    aEndNode = info.value;
+                    break;
+                }
+            }
+        }
+
+        // Z-End node name
+        if (zNodeDetail != null
+                && zNodeDetail.getAdditionalIinformation() != null) {
+
+            for (AdditionalInformation info :
+                    zNodeDetail.getAdditionalIinformation()) {
+
+                if ("nativeEMSName".equals(info.valueName)) {
+                    zEndNode = info.value;
+                    break;
+                }
+            }
+        }
+
+        // Determine circle/vendor type
+        if (aVendor.contains("GPON")) {
+
+            circle = "GPONEms";
+
+        } else if (aVendor.toLowerCase().contains("switch")) {
+
+            circle = "SwitchEms";
+
+        } else if (aVendor.toLowerCase().contains("ptn")) {
+
+            circle = "PtnEms";
+        }
+
+        String lastModified = LocalDateTime.now().toString();
+
+        // Final topology row
+        String[] row = {
+                userLabel,
+                rate,
+                "Ethernet",
+                "INNI Connectivity",
+                aVendor,
+                zVendor,
+                aVendor,
+                aEndNode,
+                zEndNode,
+                aEndPort,
+                zEndPort,
+                circle,
+                nativeEmsName,
+                lastModified
+        };
+
+        topologyData.add(row);
     }
+
+    topologyRepo.truncateTable();
+    topologyService.saveTopologyData(topologyData);
+}
 
     public void getTunnelData() {
-        List<String[]> tunnelData = new ArrayList<>();
-        // List<TopologyNodeDetail> getNodeNames = getPdDetails();
-        String trailId = "null", userLabel = "null", circuitId = "null", rate = "null";
-        String aEndDropPort = "null", zEndDropPort = "null", topology = "null";
-        String aEndDropNode = "null", zEndDropNode = "null", channel = "null";
-        String aEndNode = "null", zEndNode = "null", aEndPort = "null";
-        String aEndNodeObj = "null", zEndNodeObj = "null";
-        String zEndPort = "null", topologyType = "null", circle = "null";
-        String uuid = "null";
-        String topologyUserLabel = "";
-        LocalDateTime currentDateTime = LocalDateTime.now();
-        String lastModified = currentDateTime.toString();
+apiClientAuthService.authenticate();
+    List<String[]> tunnelData = new ArrayList<>();
 
-        List<Root> ringDetails = getRingDetails();
+    String lastModified = LocalDateTime.now().toString();
 
-        for (Root ringDetail : ringDetails) {
-            ArrayList<Link> links = ringDetail.getErp().getLinks();
-            for (Link link : links) {
-                ArrayList<ErpRinglet> erpRinglets = ringDetail.getErp().getErpRinglet();
+    // Fetch ring details once
+    List<Root> ringDetails = getRingDetails();
+
+    // Fetch all node details once
+    List<TopologyNodeDetail> allNodes = getPdDetails();
+
+    // Create UUID -> Node map
+    Map<String, TopologyNodeDetail> nodeMap =
+            allNodes.stream()
+                    .collect(Collectors.toMap(
+                            TopologyNodeDetail::getUuid,
+                            node -> node,
+                            (a, b) -> a
+                    ));
+
+    for (Root ringDetail : ringDetails) {
+
+        if (ringDetail.getErp() == null) {
+            continue;
+        }
+
+        Erp erp = ringDetail.getErp();
+
+        ArrayList<Link> links = erp.getLinks();
+
+        if (links == null) {
+            continue;
+        }
+
+        for (Link link : links) {
+
+            String trailId = "null";
+            String userLabel = "null";
+            String circuitId = "null";
+            String rate = "1 GigE";
+
+            String aEndDropPort = "null";
+            String zEndDropPort = "null";
+
+            String aEndNode = "null";
+            String zEndNode = "null";
+
+            String aEndPort = "null";
+            String zEndPort = "null";
+
+            String circle = "SwitchEms";
+
+            String topologyUserLabel = "";
+
+            // Extract ERP Ringlet info
+            ArrayList<ErpRinglet> erpRinglets = erp.getErpRinglet();
+
+            if (erpRinglets != null) {
+
                 for (ErpRinglet erpRinglet : erpRinglets) {
-                    // userLabel = erpRinglet.getErpRingletName();
-                    trailId = erpRinglet.getDataVid();
-                }
-                userLabel = ringDetail.getErp().getUuid();
-                circuitId = extractCircuitId(userLabel);
-                String topologyUuid = link.getTopologyUuid(); // Full string
-                String[] ends = topologyUuid.split("-", 2); // A-end and Z-end
 
-                if (ends.length == 2) {
-                    String[] aTokens = ends[0].split("\\|");
-                    String[] zTokens = ends[1].split("\\|");
-
-                    if (aTokens.length >= 5 && zTokens.length >= 5) {
-                        aEndNodeObj = aTokens[0] + "|" + aTokens[1]; // e.g., TTLSwitchEms|10.129.173.35
-                        zEndNodeObj = zTokens[0] + "|" + zTokens[1];
-
-                        String aPortSuffix = aTokens[2] + "-" + aTokens[3] + "-" + aTokens[4];
-                        String zPortSuffix = zTokens[2] + "-" + zTokens[3] + "-" + zTokens[4];
-
-                        aEndDropPort = "ETH-" + aPortSuffix;
-                        zEndDropPort = "ETH-" + zPortSuffix;
-
-                        ArrayList<NodeEdgePoint> nodeEdgePoints = getLinkDetails.getNodeEdgePoint();
-            // aEndNodeObj = nodeEdgePoints.get(0).getNodeUuid();
-            // zEndNodeObj = nodeEdgePoints.get(1).getNodeUuid();
-            // String aVendor=nodeEdgePoints.get(0).getTopologyUuid();
-            // String zVendor=nodeEdgePoints.get(1).getTopologyUuid();
-            TopologyNodeDetail getANodeNames = getPdNames(aEndNodeObj);
-            TopologyNodeDetail getZNodeNames = getPdNames(zEndNodeObj);
-                    ArrayList<AdditionalInformation> nodeAdditionalInformations = getANodeNames
-                            .getAdditionalIinformation();
-                    for (AdditionalInformation nodeAdditionalInformation : nodeAdditionalInformations) {
-                        if (nodeAdditionalInformation.valueName.equals("nativeEMSName")) {
-                            aEndNode = nodeAdditionalInformation.value;
-                        }
-                    }
-                    ArrayList<AdditionalInformation> nodeAdditionalInformations = getZNodeNames
-                            .getAdditionalIinformation();
-                    for (AdditionalInformation nodeAdditionalInformation : nodeAdditionalInformations) {
-                        if (nodeAdditionalInformation.valueName.equals("nativeEMSName")) {
-                            zEndNode = nodeAdditionalInformation.value;
-                        }
-                    }
+                    if (erpRinglet.getDataVid() != null) {
+                        trailId = erpRinglet.getDataVid();
                     }
                 }
-
-                String[] row2 = { trailId, userLabel, circuitId, rate, "Ethernet", "INNI Connectivity", "MAIN",
-                        "SWITCH",
-                        topologyUserLabel,
-                        aEndDropNode, zEndDropNode, aEndDropPort, zEndDropPort, aEndNode, zEndNode, aEndPort, zEndPort,
-                        circle, "NE2NE", lastModified };
-                tunnelData.add(row2);
             }
 
-        }
-        tunnelRepo.truncateTable();
-        tunnelService.saveTunnelData(tunnelData);
+            userLabel = erp.getUuid();
 
+            if (userLabel != null) {
+                circuitId = extractCircuitId(userLabel);
+            }
+
+            String topologyUuid = link.getTopologyUuid();
+
+            if (topologyUuid == null) {
+                continue;
+            }
+
+            // Split A-end and Z-end
+            String[] ends = topologyUuid.split("-", 2);
+
+            if (ends.length != 2) {
+                continue;
+            }
+
+            String[] aTokens = ends[0].split("\\|");
+            String[] zTokens = ends[1].split("\\|");
+
+            if (aTokens.length < 5 || zTokens.length < 5) {
+                continue;
+            }
+
+            // Build node UUIDs
+            String aEndNodeObj = aTokens[0] + "|" + aTokens[1];
+            String zEndNodeObj = zTokens[0] + "|" + zTokens[1];
+
+            // Build ports
+            aEndDropPort =
+                    "ETH-" + aTokens[2] + "-" + aTokens[3] + "-" + aTokens[4];
+
+            zEndDropPort =
+                    "ETH-" + zTokens[2] + "-" + zTokens[3] + "-" + zTokens[4];
+
+            // Fetch node details from map
+            TopologyNodeDetail aNodeDetail = nodeMap.get(aEndNodeObj);
+            TopologyNodeDetail zNodeDetail = nodeMap.get(zEndNodeObj);
+
+            // Resolve A-End node name
+            if (aNodeDetail != null
+                    && aNodeDetail.getAdditionalIinformation() != null) {
+
+                for (AdditionalInformation info :
+                        aNodeDetail.getAdditionalIinformation()) {
+
+                    if ("nativeEMSName".equals(info.getValueName())) {
+                        aEndNode = info.getValue();
+                        break;
+                    }
+                }
+            }
+
+            // Resolve Z-End node name
+            if (zNodeDetail != null
+                    && zNodeDetail.getAdditionalIinformation() != null) {
+
+                for (AdditionalInformation info :
+                        zNodeDetail.getAdditionalIinformation()) {
+
+                    if ("nativeEMSName".equals(info.getValueName())) {
+                        zEndNode = info.getValue();
+                        break;
+                    }
+                }
+            }
+
+            // Final row
+            String[] row = {
+                    trailId,
+                    userLabel,
+                    circuitId,
+                    rate,
+                    "Ethernet",
+                    "INNI Connectivity",
+                    "MAIN",
+                    "SWITCH",
+                    topologyUserLabel,
+                    "null",
+                    "null",
+                    aEndDropPort,
+                    zEndDropPort,
+                    aEndNode,
+                    zEndNode,
+                    aEndPort,
+                    zEndPort,
+                    circle,
+                    "NE2NE",
+                    lastModified
+            };
+
+            tunnelData.add(row);
+        }
     }
 
+    tunnelRepo.truncateTable();
+
+    tunnelService.saveTunnelData(tunnelData);
+}
+
     public void getServiceData() {
+        apiClientAuthService.authenticate();
         List<String[]> tunnelData = new ArrayList<>();
 
         String trailId = "null", userLabel = "null", circuitId = "null", rate = "null";
@@ -563,7 +748,7 @@ public class ApiClientInventoryService extends BaseApiClientService {
                                                 String nodeUuid = connectionEndPoint1.topologyUuid + "|"
                                                         + connectionEndPoint1.nodeUuid;
 
-                                            TopologyNodeDetail getNodeName = getPdNames(getNodeName.getUuid());
+                                            TopologyNodeDetail getNodeName = getPdNames(nodeUuid);
 
                                                     
                                                         ArrayList<AdditionalInformation> nodeAdditionalInformations = getNodeName
