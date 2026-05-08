@@ -142,7 +142,7 @@ public class ApiClientInventoryService extends BaseApiClientService {
     public List<Root> getNodeList() {
         // Get Network Manager Config
         NetworkManagerConfig networkManager = applicationConfig.getNetworkManager();
-          List<String> topologies = networkManager.getTopologies();
+        List<String> topologies = networkManager.getTopologies();
 
         // Fetch the correct endpoint for getting node list
         Endpoint endpoint = networkManager.getEndpoints().stream()
@@ -262,7 +262,8 @@ public class ApiClientInventoryService extends BaseApiClientService {
 
         return nodeList;
     }
-// gpon,switch,ptn
+
+    // gpon,switch,ptn
     public List<TopologyNodeDetail> getLinkDetails() {
         // Get Network Manager Config
         List<Root> getLinkList = getLinkList();
@@ -303,37 +304,33 @@ public class ApiClientInventoryService extends BaseApiClientService {
         List<String[]> topologyData = new ArrayList<>();
         List<String[]> tunnelData = new ArrayList<>();
 
-         List<TopologyNodeDetail> getLinkDetailList = getLinkDetails();// done
-        
+        List<TopologyNodeDetail> getLinkDetailList = getLinkDetails();// done
+
         // List<String>list=Arrays.asList("TTLSwitchEms-5","TTLSwitchEms-2","TTLSwitchEms-1"
-        //     ,"TTLSwitchEms-3","TTLSwitchEms-4","TTLEMS-GPON-1","TTLEMS-GPON-2"
+        // ,"TTLSwitchEms-3","TTLSwitchEms-4","TTLEMS-GPON-1","TTLEMS-GPON-2"
         // );
 
         // for(String circles: list){
-         String aLinkCircle="";
-        for(TopologyNodeDetail topoDetails: getLinkDetailList)
-        {
-          ArrayList<AdditionalInformation>additionalInfo= topoDetails.getAdditionalIinformation();
-          for(AdditionalInformation info: additionalInfo)
-          {
-            if(info.getValueName().equals("aend-object-name"))
-            {
-                aLinkCircle=info.getValue();
+        String aLinkCircle = "";
+        String zLinkCircle = "";
+        for (TopologyNodeDetail topoDetails : getLinkDetailList) {
+            ArrayList<AdditionalInformation> additionalInfo = topoDetails.getAdditionalIinformation();
+            for (AdditionalInformation info : additionalInfo) {
+                if (info.getValueName().equals("aend-object-name")) {
+                    aLinkCircle = info.getValue();
+                }
+                if (info.getValueName().equals("zend-object-name")) {
+                    zLinkCircle = info.getValue();
+                }
             }
-            if(info.getValueName().equals("zend-object-name"))
-            {
-                zLinkCircle=info.getValue();
-            }
-          }
         }
-    
 
-        log.info("linkCircleName: "+aLinkCircle +" storedCircle: "+circles);
+        // log.info("linkCircleName: "+aLinkCircle +" storedCircle: "+circles);
 
-        String vendor="";
-        //  if(aLinkCircle.contains(circles))
-        //     {
-            //    vendor=circles;
+        String vendor = "";
+        // if(aLinkCircle.contains(circles))
+        // {
+        // vendor=circles;
         for (TopologyNodeDetail getLinkDetails : getLinkDetailList) {
             String trailId = "null", userLabel = "null", circuitId = "null", rate = "null";
             String aEndDropPort = "null", zEndDropPort = "null", topology = "null";
@@ -384,53 +381,51 @@ public class ApiClientInventoryService extends BaseApiClientService {
             }
 
             String nativeEmsName = getLinkDetails.getUuid();
-           
+
             ArrayList<NodeEdgePoint> nodeEdgePoints = getLinkDetails.getNodeEdgePoint();
             aEndNodeObj = nodeEdgePoints.get(0).getNodeUuid();
             zEndNodeObj = nodeEdgePoints.get(1).getNodeUuid();
-            String aVendor=nodeEdgePoints.get(0).getTopologyUuid();
-            String zVendor=nodeEdgePoints.get(1).getTopologyUuid();
+            String aVendor = nodeEdgePoints.get(0).getTopologyUuid();
+            String zVendor = nodeEdgePoints.get(1).getTopologyUuid();
             TopologyNodeDetail getANodeNames = getPdNames(aEndNodeObj);
             TopologyNodeDetail getZNodeNames = getPdNames(zEndNodeObj);
-                    ArrayList<AdditionalInformation> nodeAdditionalInformations = getANodeNames
-                            .getAdditionalIinformation();
-                    for (AdditionalInformation nodeAdditionalInformation : nodeAdditionalInformations) {
-                        if (nodeAdditionalInformation.valueName.equals("nativeEMSName")) {
-                            aEndNode = nodeAdditionalInformation.value;
-                        }
-                    }
-                    ArrayList<AdditionalInformation> nodeAdditionalInformations = getZNodeNames
-                            .getAdditionalIinformation();
-                    for (AdditionalInformation nodeAdditionalInformation : nodeAdditionalInformations) {
-                        if (nodeAdditionalInformation.valueName.equals("nativeEMSName")) {
-                            zEndNode = nodeAdditionalInformation.value;
-                        }
-                    }
+            ArrayList<AdditionalInformation> nodeAdditionalInformations = getANodeNames
+                    .getAdditionalIinformation();
+            for (AdditionalInformation nodeAdditionalInformation : nodeAdditionalInformations) {
+                if (nodeAdditionalInformation.valueName.equals("nativeEMSName")) {
+                    aEndNode = nodeAdditionalInformation.value;
+                }
+            }
+            ArrayList<AdditionalInformation> nodeAdditionalInformations1 = getZNodeNames
+                    .getAdditionalIinformation();
+            for (AdditionalInformation nodeAdditionalInformation : nodeAdditionalInformations1) {
+                if (nodeAdditionalInformation.valueName.equals("nativeEMSName")) {
+                    zEndNode = nodeAdditionalInformation.value;
+                }
+            }
 
             // Set default values if necessary
             LocalDateTime currentDateTime = LocalDateTime.now();
             String lastModified = currentDateTime.toString();
 
-          if(aVendor.contains(GPON)){
-            circle="GPONEms";
-          }else if(aVendor.toLowerCase().contains(switch)){
-            circle="SwitchEms"
-          }else if (aVendor.toLowerCase().contains(switch)){
-            circle="PtnEms"
-          }
+            if (aVendor.contains("gpon")) {
+                circle = "GPONEms";
+            } else if (aVendor.toLowerCase().contains("switch")) {
+                circle = "SwitchEms";
+            } else if (aVendor.toLowerCase().contains("ptn")) {
+                circle = "PtnEms";
+            }
 
-          
-            
             // Collect data for topology
-            String[] row = { userLabel, rate, "Ethernet", "INNI Connectivity",aVendor, zVendor, aVendor, aEndNode,
+            String[] row = { userLabel, rate, "Ethernet", "INNI Connectivity", aVendor, zVendor, aVendor, aEndNode,
                     zEndNode, aEndPort, zEndPort, circle, nativeEmsName, lastModified };
             topologyData.add(row);
 
             // Collect data for tunnel
 
         }
-            // }
-            // }
+        // }
+        // }
 
         // Save data and write to CSV
         topologyRepo.truncateTable();
@@ -481,27 +476,27 @@ public class ApiClientInventoryService extends BaseApiClientService {
                         aEndDropPort = "ETH-" + aPortSuffix;
                         zEndDropPort = "ETH-" + zPortSuffix;
 
-                        ArrayList<NodeEdgePoint> nodeEdgePoints = getLinkDetails.getNodeEdgePoint();
-            // aEndNodeObj = nodeEdgePoints.get(0).getNodeUuid();
-            // zEndNodeObj = nodeEdgePoints.get(1).getNodeUuid();
-            // String aVendor=nodeEdgePoints.get(0).getTopologyUuid();
-            // String zVendor=nodeEdgePoints.get(1).getTopologyUuid();
-            TopologyNodeDetail getANodeNames = getPdNames(aEndNodeObj);
-            TopologyNodeDetail getZNodeNames = getPdNames(zEndNodeObj);
-                    ArrayList<AdditionalInformation> nodeAdditionalInformations = getANodeNames
-                            .getAdditionalIinformation();
-                    for (AdditionalInformation nodeAdditionalInformation : nodeAdditionalInformations) {
-                        if (nodeAdditionalInformation.valueName.equals("nativeEMSName")) {
-                            aEndNode = nodeAdditionalInformation.value;
+                        // ArrayList<NodeEdgePoint> nodeEdgePoints = getLinkDetails.getNodeEdgePoint();
+                        // aEndNodeObj = nodeEdgePoints.get(0).getNodeUuid();
+                        // zEndNodeObj = nodeEdgePoints.get(1).getNodeUuid();
+                        // String aVendor=nodeEdgePoints.get(0).getTopologyUuid();
+                        // String zVendor=nodeEdgePoints.get(1).getTopologyUuid();
+                        TopologyNodeDetail getANodeNames = getPdNames(aEndNodeObj);
+                        TopologyNodeDetail getZNodeNames = getPdNames(zEndNodeObj);
+                        ArrayList<AdditionalInformation> nodeAdditionalInformations = getANodeNames
+                                .getAdditionalIinformation();
+                        for (AdditionalInformation nodeAdditionalInformation : nodeAdditionalInformations) {
+                            if (nodeAdditionalInformation.valueName.equals("nativeEMSName")) {
+                                aEndNode = nodeAdditionalInformation.value;
+                            }
                         }
-                    }
-                    ArrayList<AdditionalInformation> nodeAdditionalInformations = getZNodeNames
-                            .getAdditionalIinformation();
-                    for (AdditionalInformation nodeAdditionalInformation : nodeAdditionalInformations) {
-                        if (nodeAdditionalInformation.valueName.equals("nativeEMSName")) {
-                            zEndNode = nodeAdditionalInformation.value;
+                        ArrayList<AdditionalInformation> nodeAdditionalInformations1 = getZNodeNames
+                                .getAdditionalIinformation();
+                        for (AdditionalInformation nodeAdditionalInformation : nodeAdditionalInformations1) {
+                            if (nodeAdditionalInformation.valueName.equals("nativeEMSName")) {
+                                zEndNode = nodeAdditionalInformation.value;
+                            }
                         }
-                    }
                     }
                 }
 
@@ -534,7 +529,8 @@ public class ApiClientInventoryService extends BaseApiClientService {
         String lastModified = currentDateTime.toString();
 
         List<Root> serviceDetails = getServiceDetails();
-        // List<TopologyNodeDetail> getNodeNames = getPdDetails(); // Move outside loop for efficiency
+        // List<TopologyNodeDetail> getNodeNames = getPdDetails(); // Move outside loop
+        // for efficiency
 
         for (Root serviceDetail : serviceDetails) {
             if (serviceDetail.getConnectivityService() != null) {
@@ -563,37 +559,36 @@ public class ApiClientInventoryService extends BaseApiClientService {
                                                 String nodeUuid = connectionEndPoint1.topologyUuid + "|"
                                                         + connectionEndPoint1.nodeUuid;
 
-                                            TopologyNodeDetail getNodeName = getPdNames(getNodeName.getUuid());
+                                                TopologyNodeDetail getNodeName = getPdNames(nodeUuid);
 
-                                                    
-                                                        ArrayList<AdditionalInformation> nodeAdditionalInformations = getNodeName
-                                                                .getAdditionalIinformation();
-                                                        if (nodeAdditionalInformations != null) {
-                                                            for (AdditionalInformation nodeAdditionalInformation : nodeAdditionalInformations) {
-                                                                if ("nativeEMSName"
-                                                                        .equals(nodeAdditionalInformation.valueName)) {
+                                                ArrayList<AdditionalInformation> nodeAdditionalInformations = getNodeName
+                                                        .getAdditionalIinformation();
+                                                if (nodeAdditionalInformations != null) {
+                                                    for (AdditionalInformation nodeAdditionalInformation : nodeAdditionalInformations) {
+                                                        if ("nativeEMSName"
+                                                                .equals(nodeAdditionalInformation.valueName)) {
 
-                                                                    aEndDropNode = nodeAdditionalInformation.value;
+                                                            aEndDropNode = nodeAdditionalInformation.value;
 
-                                                                    // Extract port label from endpoint
-                                                                    ArrayList<AdditionalInformation> additionalInformation = endPoint1
-                                                                            .getAdditionalInformation();
-                                                                    if (additionalInformation != null) {
-                                                                        for (AdditionalInformation additionalInformation1 : additionalInformation) {
-                                                                            if (additionalInformation1 != null &&
-                                                                                    "port-label".equals(
-                                                                                            additionalInformation1.valueName)) {
+                                                            // Extract port label from endpoint
+                                                            ArrayList<AdditionalInformation> additionalInformation = endPoint1
+                                                                    .getAdditionalInformation();
+                                                            if (additionalInformation != null) {
+                                                                for (AdditionalInformation additionalInformation1 : additionalInformation) {
+                                                                    if (additionalInformation1 != null &&
+                                                                            "port-label".equals(
+                                                                                    additionalInformation1.valueName)) {
 
-                                                                                // Assign to a_end_port or z_end_port
-                                                                                aEndDropPort = additionalInformation1.value;
-                                                                            }
-                                                                        }
+                                                                        // Assign to a_end_port or z_end_port
+                                                                        aEndDropPort = additionalInformation1.value;
                                                                     }
-
                                                                 }
                                                             }
+
                                                         }
-                                                
+                                                    }
+                                                }
+
                                             }
                                         }
                                     }
