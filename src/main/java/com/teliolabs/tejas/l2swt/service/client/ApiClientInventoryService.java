@@ -478,7 +478,7 @@ public class ApiClientInventoryService extends BaseApiClientService {
             LocalDateTime currentDateTime = LocalDateTime.now();
             String lastModified = currentDateTime.toString();
 
-            if (aVendor.contains("gpon")) {
+            if (aVendor.contains("GPON")) {
                 circle = "GPONEms";
             } else if (aVendor.toLowerCase().contains("switch")) {
                 circle = "SwitchEms";
@@ -572,6 +572,14 @@ public class ApiClientInventoryService extends BaseApiClientService {
                             }
                         }
                     }
+                }
+
+                if (vendor.contains("GPON")) {
+                    circle = "GPONEms";
+                } else if (vendor.toLowerCase().contains("switch")) {
+                    circle = "SwitchEms";
+                } else if (vendor.toLowerCase().contains("ptn")) {
+                    circle = "PtnEms";
                 }
 
                 String[] row2 = { trailId, userLabel, circuitId, rate, "Ethernet", "INNI Connectivity", "MAIN",
@@ -681,7 +689,13 @@ public class ApiClientInventoryService extends BaseApiClientService {
                             // System.out.println("User Label: " + userLabel);
                             // System.out.println("Node Label: " + nodeLabel);
                             // System.out.println("Port Label: " + portLabels);
-
+                            if (vendor.contains("GPON")) {
+                                circle = "GPONEms";
+                            } else if (vendor.toLowerCase().contains("switch")) {
+                                circle = "SwitchEms";
+                            } else if (vendor.toLowerCase().contains("ptn")) {
+                                circle = "PtnEms";
+                            }
                             // Construct row
                             String[] row2 = { trailId, userLabel, circuitId, rate, "Ethernet", "INNI Connectivity",
                                     "MAIN",
