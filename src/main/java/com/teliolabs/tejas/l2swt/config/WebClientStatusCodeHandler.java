@@ -25,37 +25,27 @@ public class WebClientStatusCodeHandler {
         HttpStatus status = (HttpStatus) response.statusCode();
         log.debug("Returned status code {} ({})", status.value(), status.getReasonPhrase());
         if (status != null && (status.is4xxClientError() || status.is5xxServerError())) {
-            if (HttpStatus.BAD_REQUEST.equals(status)) {
-                return response.bodyToMono(String.class).defaultIfEmpty(status.getReasonPhrase()).flatMap(body -> {
+            return response.bodyToMono(String.class).defaultIfEmpty(status.getReasonPhrase()).flatMap(body -> {
+                if (body != null && body.contains("INVALID_USER")) {
+                    log.warn("Skipping inaccessible node. Response: {}", body);
+                } else {
                     log.error(RES_BODY, body);
+                }
+
+                if (HttpStatus.BAD_REQUEST.equals(status)) {
                     return Mono.error(new BadRequestException("BadRequestException", body));
-                });
-            } else if (HttpStatus.NOT_FOUND.equals(status)) {
-                return response.bodyToMono(String.class).defaultIfEmpty(status.getReasonPhrase()).flatMap(body -> {
-                    log.error(RES_BODY, body);
+                } else if (HttpStatus.NOT_FOUND.equals(status)) {
                     return Mono.error(new NotFoundException("NotFoundException", body));
-                });
-            } else if (HttpStatus.SERVICE_UNAVAILABLE.equals(status)) {
-                return response.bodyToMono(String.class).defaultIfEmpty(status.getReasonPhrase()).flatMap(body -> {
-                    log.error(RES_BODY, body);
+                } else if (HttpStatus.SERVICE_UNAVAILABLE.equals(status)) {
                     return Mono.error(new NotAvailableException("NotAvailableException", body));
-                });
-            } else if (HttpStatus.UNAUTHORIZED.equals(status)) {
-                return response.bodyToMono(String.class).defaultIfEmpty(status.getReasonPhrase()).flatMap(body -> {
-                    log.error(RES_BODY, body);
+                } else if (HttpStatus.UNAUTHORIZED.equals(status)) {
                     return Mono.error(new UnAuthorizedException("UnAuthorizedException", body));
-                });
-            } else if (HttpStatus.INTERNAL_SERVER_ERROR.equals(status)) {
-                return response.bodyToMono(String.class).defaultIfEmpty(status.getReasonPhrase()).flatMap(body -> {
-                    log.error(RES_BODY, body);
+                } else if (HttpStatus.INTERNAL_SERVER_ERROR.equals(status)) {
                     return Mono.error(new InternalServerException("InternalServerException", body));
-                });
-            } else {
-                return response.bodyToMono(String.class).defaultIfEmpty(status.getReasonPhrase()).flatMap(body -> {
-                    log.error(RES_BODY, body);
+                } else {
                     return Mono.error(new ApiException("ApiException", body));
-                });
-            }
+                }
+            });
         } else {
             return Mono.just(response);
         }

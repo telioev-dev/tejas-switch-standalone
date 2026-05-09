@@ -46,7 +46,7 @@ config:
         method: GET
       - name: get-node-details
         host: ${TEJAS_SWITCH_BASE_URL}
-        path: /nmsnbi-rest/tapi/data/context/topology-context/topology/node={nodeUuid}
+        path: /nmsnbi-rest/tapi/data/context/topology-context/topology={topologyuuid}/node={nodeUuid}
         method: GET
       - name: get-node-edge-points
         host: ${TEJAS_SWITCH_BASE_URL}

@@ -59,7 +59,6 @@ public class ApiClientInventoryService extends BaseApiClientService {
     private final TopologyRepo topologyRepo;
     private final TunnelRepo tunnelRepo;
     private final TrailRepo trailRepo;
-   
 
     @Autowired
     public ApiClientInventoryService(ApplicationContext applicationContext, WebClient.Builder webClientBuilder,
@@ -81,81 +80,73 @@ public class ApiClientInventoryService extends BaseApiClientService {
     // Service method with token refresh logic
     public List<TopologyNodeDetail> getPdDetails() {
 
-    // Authenticate once
-  
+        // Authenticate once
 
-    // Fetch all node UUIDs
-    List<Root> nodeLists = getNodeList();
+        // Fetch all node UUIDs
+        List<Root> nodeLists = getNodeList();
 
-    if (nodeLists == null || nodeLists.isEmpty()) {
-        return new ArrayList<>();
-    }
-
-    // Fetch endpoint once
-    NetworkManagerConfig networkManager =
-            applicationConfig.getNetworkManager();
-
-    Endpoint endpoint = networkManager.getEndpoints().stream()
-            .filter(e ->
-                    e.getName().equals(
-                            EndpointConstants.GET_NODE_DETAILS))
-            .findFirst()
-            .orElseThrow(() ->
-                    new IllegalArgumentException(
-                            "GET_NODE_DETAILS endpoint not found"));
-
-    List<TopologyNodeDetail> pdDetailsList = new ArrayList<>();
-
-    for (Root node : nodeLists) {
-
-        if (node == null || node.getUuid() == null) {
-            continue;
+        if (nodeLists == null || nodeLists.isEmpty()) {
+            return new ArrayList<>();
         }
 
-        String uuid = node.getUuid();
+        // Fetch endpoint once
+        NetworkManagerConfig networkManager = applicationConfig.getNetworkManager();
 
-        try {
+        Endpoint endpoint = networkManager.getEndpoints().stream()
+                .filter(e -> e.getName().equals(
+                        EndpointConstants.GET_NODE_DETAILS))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "GET_NODE_DETAILS endpoint not found"));
 
-            TopologyNodeDetail nodeDetail = webClientBuilder
-                    .baseUrl(getEndpointHost(endpoint))
-                    .build()
-                    .method(resolveMethod(endpoint))
-                    .uri(uriBuilder ->
-                            uriBuilder
-                                    .path(getEndpointPath(endpoint))
-                                    .build(uuid))
-                    .headers(headers ->
-                            headers.setBearerAuth(  apiClientAuthService.getValidToken()))
-                                           
-                    .retrieve()
-                    .bodyToMono(
-                            new ParameterizedTypeReference<TopologyNodeDetail>() {
-                            })
-                    .block();
+        List<TopologyNodeDetail> pdDetailsList = new ArrayList<>();
 
-            if (nodeDetail != null) {
-                pdDetailsList.add(nodeDetail);
+        for (Root node : nodeLists) {
+
+            if (node == null || node.getUuid() == null) {
+                continue;
             }
 
-        } catch (Exception e) {
+            String uuid = node.getUuid();
 
-            log.error(
-                    "Failed to fetch node details for UUID: {}",
-                    uuid,
-                    e
-            );
+            try {
+
+                TopologyNodeDetail nodeDetail = webClientBuilder
+                        .baseUrl(getEndpointHost(endpoint))
+                        .build()
+                        .method(resolveMethod(endpoint))
+                        .uri(uriBuilder -> uriBuilder
+                                .path(getEndpointPath(endpoint))
+                                .build(node.getTopologyUuid(), uuid))
+                        .headers(headers -> headers.setBearerAuth(apiClientAuthService.getValidToken()))
+
+                        .retrieve()
+                        .bodyToMono(
+                                new ParameterizedTypeReference<TopologyNodeDetail>() {
+                                })
+                        .block();
+
+                if (nodeDetail != null) {
+                    pdDetailsList.add(nodeDetail);
+                }
+
+            } catch (Exception e) {
+
+                log.error(
+                        "Failed to fetch node details for UUID: {}",
+                        uuid,
+                        e);
+            }
         }
+
+        log.info(
+                "Successfully fetched {} node details",
+                pdDetailsList.size());
+
+        return pdDetailsList;
     }
 
-    log.info(
-            "Successfully fetched {} node details",
-            pdDetailsList.size()
-    );
-
-    return pdDetailsList;
-}
-
-    public TopologyNodeDetail getPdNames(String uuid) {
+    public TopologyNodeDetail getPdNames(String topologyUuid, String nodeUuid) {
 
         // Get Network Manager Config
         TopologyNodeDetail nodesList = null;
@@ -166,27 +157,45 @@ public class ApiClientInventoryService extends BaseApiClientService {
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Endpoint not found"));
 
-                System.out.println("reauthentiat insdie the pdNames");
-        
-        // Build the WebClient and make the request
-        nodesList = webClientBuilder
-                .baseUrl(getEndpointHost(endpoint))
-                .build()
-                .method(resolveMethod(endpoint))
-                .uri(uriBuilder -> uriBuilder.path(getEndpointPath(endpoint))
-                        .build(uuid))
-                .headers(headers ->  headers.setBearerAuth(  apiClientAuthService.getValidToken()))
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<TopologyNodeDetail>() {
-                })
-                .block(); // Blocking call, consider using async if possible
+        // System.out.println("reauthentiat insdie the pdNames");
+
+        try {
+            nodesList = webClientBuilder
+                    .baseUrl(getEndpointHost(endpoint))
+                    .build()
+                    .method(resolveMethod(endpoint))
+                    .uri(uriBuilder -> uriBuilder.path(getEndpointPath(endpoint))
+                            .build(topologyUuid, nodeUuid))
+                    .headers(headers -> headers.setBearerAuth(apiClientAuthService.getValidToken()))
+                    .retrieve()
+                    .bodyToMono(new ParameterizedTypeReference<TopologyNodeDetail>() {
+                    })
+                    .block(); // Blocking call, consider using async if possible
+        } catch (Exception e) {
+            log.warn("Failed to fetch node details for topology: {}, node: {} - {}", topologyUuid, nodeUuid,
+                    e.getMessage());
+
+            // Return a fallback object with the requested ID instead of null
+            TopologyNodeDetail fallbackDetail = new TopologyNodeDetail();
+            fallbackDetail.setUuid(nodeUuid);
+
+            com.teliolabs.tejas.l2swt.util.AdditionalInformation ai = new com.teliolabs.tejas.l2swt.util.AdditionalInformation();
+            ai.setValueName("nativeEMSName");
+            ai.setValue(nodeUuid);
+
+            java.util.ArrayList<com.teliolabs.tejas.l2swt.util.AdditionalInformation> aiList = new java.util.ArrayList<>();
+            aiList.add(ai);
+            fallbackDetail.setAdditionalIinformation(aiList);
+
+            return fallbackDetail;
+        }
         return nodesList;
     }
 
     public List<Root> getNodeList() {
         // Get Network Manager Config
         NetworkManagerConfig networkManager = applicationConfig.getNetworkManager();
-          List<String> topologies = networkManager.getTopologies();
+        List<String> topologies = networkManager.getTopologies();
 
         // Fetch the correct endpoint for getting node list
         Endpoint endpoint = networkManager.getEndpoints().stream()
@@ -194,8 +203,8 @@ public class ApiClientInventoryService extends BaseApiClientService {
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Endpoint not found"));
 
-                System.out.println("calling nodeList autheticate");
-          
+        System.out.println("calling nodeList autheticate");
+
         // Build the WebClient and make the request
         List<Root> nodeList = webClientBuilder
                 .baseUrl(getEndpointHost(endpoint))
@@ -203,9 +212,8 @@ public class ApiClientInventoryService extends BaseApiClientService {
                 .method(resolveMethod(endpoint))
                 .uri(uriBuilder -> uriBuilder.path(getEndpointPath(endpoint))
                         .build())
-                .headers(headers ->
-    headers.setBearerAuth(
-        apiClientAuthService.getValidToken()))
+                .headers(headers -> headers.setBearerAuth(
+                        apiClientAuthService.getValidToken()))
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<List<Root>>() {
                 })
@@ -226,8 +234,8 @@ public class ApiClientInventoryService extends BaseApiClientService {
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Endpoint not found"));
 
-                System.out.println("apiClientAuthService.authenticate()");
-         
+        System.out.println("apiClientAuthService.authenticate()");
+
         // Build the WebClient and make the request
         List<Root> nodeList = webClientBuilder
                 .baseUrl(getEndpointHost(endpoint))
@@ -235,9 +243,8 @@ public class ApiClientInventoryService extends BaseApiClientService {
                 .method(resolveMethod(endpoint))
                 .uri(uriBuilder -> uriBuilder.path(getEndpointPath(endpoint))
                         .build())
-                .headers(headers ->
-    headers.setBearerAuth(
-        apiClientAuthService.getValidToken()))
+                .headers(headers -> headers.setBearerAuth(
+                        apiClientAuthService.getValidToken()))
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<List<Root>>() {
                 })
@@ -259,7 +266,6 @@ public class ApiClientInventoryService extends BaseApiClientService {
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Endpoint not found"));
 
-                
         for (Root node : nodeLists) {
             String uuid = node.getUuid();
 
@@ -275,9 +281,8 @@ public class ApiClientInventoryService extends BaseApiClientService {
                             .queryParam("nodeuuid", uuid)
                             .queryParam("size", 500)
                             .build())
-                    .headers(headers ->
-    headers.setBearerAuth(
-        apiClientAuthService.getValidToken()))
+                    .headers(headers -> headers.setBearerAuth(
+                            apiClientAuthService.getValidToken()))
                     .retrieve()
                     .bodyToMono(new ParameterizedTypeReference<List<Root>>() {
                     })
@@ -307,9 +312,8 @@ public class ApiClientInventoryService extends BaseApiClientService {
                         .path(getEndpointPath(endpoint))
                         .queryParam("size", 500)
                         .build())
-               .headers(headers ->
-    headers.setBearerAuth(
-        apiClientAuthService.getValidToken()))
+                .headers(headers -> headers.setBearerAuth(
+                        apiClientAuthService.getValidToken()))
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<List<Root>>() {
                 })
@@ -319,7 +323,8 @@ public class ApiClientInventoryService extends BaseApiClientService {
 
         return nodeList;
     }
-// gpon,switch,ptn
+
+    // gpon,switch,ptn
     public List<TopologyNodeDetail> getLinkDetails() {
         // Get Network Manager Config
         List<Root> getLinkList = getLinkList();
@@ -335,20 +340,23 @@ public class ApiClientInventoryService extends BaseApiClientService {
                     .findFirst()
                     .orElseThrow(() -> new IllegalArgumentException("Endpoint not found"));
 
-            // Build the WebClient and make the request
-            linksList = webClientBuilder
-                    .baseUrl(getEndpointHost(endpoint))
-                    .build()
-                    .method(resolveMethod(endpoint))
-                    .uri(uriBuilder -> uriBuilder.path(getEndpointPath(endpoint))
-                            .build(linkUuid))
-                    .headers(headers ->
-    headers.setBearerAuth(
-        apiClientAuthService.getValidToken()))
-                    .retrieve()
-                    .bodyToMono(new ParameterizedTypeReference<TopologyNodeDetail>() {
-                    })
-                    .block(); // Blocking call, consider using async if possible
+            try {
+                linksList = webClientBuilder
+                        .baseUrl(getEndpointHost(endpoint))
+                        .build()
+                        .method(resolveMethod(endpoint))
+                        .uri(uriBuilder -> uriBuilder.path(getEndpointPath(endpoint))
+                                .build(linkUuid))
+                        .headers(headers -> headers.setBearerAuth(
+                                apiClientAuthService.getValidToken()))
+                        .retrieve()
+                        .bodyToMono(new ParameterizedTypeReference<TopologyNodeDetail>() {
+                        })
+                        .block(); // Blocking call, consider using async if possible
+            } catch (Exception e) {
+                log.warn("Failed to fetch link details for link: {} - {}", linkUuid, e.getMessage());
+                linksList = null;
+            }
             if (linksList != null) {
                 topologyDetails.add(linksList);
             }
@@ -445,20 +453,24 @@ public class ApiClientInventoryService extends BaseApiClientService {
             zEndNodeObj = nodeEdgePoints.get(1).getNodeUuid();
             String aVendor = nodeEdgePoints.get(0).getTopologyUuid();
             String zVendor = nodeEdgePoints.get(1).getTopologyUuid();
-            TopologyNodeDetail getANodeNames = getPdNames(aEndNodeObj);
-            TopologyNodeDetail getZNodeNames = getPdNames(zEndNodeObj);
-            ArrayList<AdditionalInformation> nodeAdditionalInformations = getANodeNames
-                    .getAdditionalIinformation();
-            for (AdditionalInformation nodeAdditionalInformation : nodeAdditionalInformations) {
-                if (nodeAdditionalInformation.valueName.equals("nativeEMSName")) {
-                    aEndNode = nodeAdditionalInformation.value;
+            TopologyNodeDetail getANodeNames = getPdNames(aVendor, aEndNodeObj);
+            TopologyNodeDetail getZNodeNames = getPdNames(zVendor, zEndNodeObj);
+            if (getANodeNames != null && getANodeNames.getAdditionalIinformation() != null) {
+                ArrayList<AdditionalInformation> nodeAdditionalInformations = getANodeNames
+                        .getAdditionalIinformation();
+                for (AdditionalInformation nodeAdditionalInformation : nodeAdditionalInformations) {
+                    if (nodeAdditionalInformation.valueName.equals("nativeEMSName")) {
+                        aEndNode = nodeAdditionalInformation.value;
+                    }
                 }
             }
-            ArrayList<AdditionalInformation> nodeAdditionalInformations1 = getZNodeNames
-                    .getAdditionalIinformation();
-            for (AdditionalInformation nodeAdditionalInformation : nodeAdditionalInformations1) {
-                if (nodeAdditionalInformation.valueName.equals("nativeEMSName")) {
-                    zEndNode = nodeAdditionalInformation.value;
+            if (getZNodeNames != null && getZNodeNames.getAdditionalIinformation() != null) {
+                ArrayList<AdditionalInformation> nodeAdditionalInformations1 = getZNodeNames
+                        .getAdditionalIinformation();
+                for (AdditionalInformation nodeAdditionalInformation : nodeAdditionalInformations1) {
+                    if (nodeAdditionalInformation.valueName.equals("nativeEMSName")) {
+                        zEndNode = nodeAdditionalInformation.value;
+                    }
                 }
             }
 
@@ -519,7 +531,7 @@ public class ApiClientInventoryService extends BaseApiClientService {
                 circuitId = extractCircuitId(userLabel);
                 String topologyUuid = link.getTopologyUuid(); // Full string
                 String[] ends = topologyUuid.split("-", 2); // A-end and Z-end
-
+                String vendor = "";
                 if (ends.length == 2) {
                     String[] aTokens = ends[0].split("\\|");
                     String[] zTokens = ends[1].split("\\|");
@@ -527,7 +539,7 @@ public class ApiClientInventoryService extends BaseApiClientService {
                     if (aTokens.length >= 5 && zTokens.length >= 5) {
                         aEndNodeObj = aTokens[0] + "|" + aTokens[1]; // e.g., TTLSwitchEms|10.129.173.35
                         zEndNodeObj = zTokens[0] + "|" + zTokens[1];
-
+                        vendor = aTokens[0];
                         String aPortSuffix = aTokens[2] + "-" + aTokens[3] + "-" + aTokens[4];
                         String zPortSuffix = zTokens[2] + "-" + zTokens[3] + "-" + zTokens[4];
 
@@ -539,27 +551,31 @@ public class ApiClientInventoryService extends BaseApiClientService {
                         // zEndNodeObj = nodeEdgePoints.get(1).getNodeUuid();
                         // String aVendor=nodeEdgePoints.get(0).getTopologyUuid();
                         // String zVendor=nodeEdgePoints.get(1).getTopologyUuid();
-                        TopologyNodeDetail getANodeNames = getPdNames(aEndNodeObj);
-                        TopologyNodeDetail getZNodeNames = getPdNames(zEndNodeObj);
-                        ArrayList<AdditionalInformation> nodeAdditionalInformations = getANodeNames
-                                .getAdditionalIinformation();
-                        for (AdditionalInformation nodeAdditionalInformation : nodeAdditionalInformations) {
-                            if (nodeAdditionalInformation.valueName.equals("nativeEMSName")) {
-                                aEndNode = nodeAdditionalInformation.value;
+                        TopologyNodeDetail getANodeNames = getPdNames(aTokens[0], aEndNodeObj);
+                        TopologyNodeDetail getZNodeNames = getPdNames(zTokens[0], zEndNodeObj);
+                        if (getANodeNames != null && getANodeNames.getAdditionalIinformation() != null) {
+                            ArrayList<AdditionalInformation> nodeAdditionalInformations = getANodeNames
+                                    .getAdditionalIinformation();
+                            for (AdditionalInformation nodeAdditionalInformation : nodeAdditionalInformations) {
+                                if (nodeAdditionalInformation.valueName.equals("nativeEMSName")) {
+                                    aEndNode = nodeAdditionalInformation.value;
+                                }
                             }
                         }
-                        ArrayList<AdditionalInformation> nodeAdditionalInformations1 = getZNodeNames
-                                .getAdditionalIinformation();
-                        for (AdditionalInformation nodeAdditionalInformation : nodeAdditionalInformations1) {
-                            if (nodeAdditionalInformation.valueName.equals("nativeEMSName")) {
-                                zEndNode = nodeAdditionalInformation.value;
+                        if (getZNodeNames != null && getZNodeNames.getAdditionalIinformation() != null) {
+                            ArrayList<AdditionalInformation> nodeAdditionalInformations1 = getZNodeNames
+                                    .getAdditionalIinformation();
+                            for (AdditionalInformation nodeAdditionalInformation : nodeAdditionalInformations1) {
+                                if (nodeAdditionalInformation.valueName.equals("nativeEMSName")) {
+                                    zEndNode = nodeAdditionalInformation.value;
+                                }
                             }
                         }
                     }
                 }
 
                 String[] row2 = { trailId, userLabel, circuitId, rate, "Ethernet", "INNI Connectivity", "MAIN",
-                        "SWITCH",
+                        vendor,
                         topologyUserLabel,
                         aEndDropNode, zEndDropNode, aEndDropPort, zEndDropPort, aEndNode, zEndNode, aEndPort, zEndPort,
                         circle, "NE2NE", lastModified };
@@ -607,6 +623,7 @@ public class ApiClientInventoryService extends BaseApiClientService {
                             userLabel = serviceName.getValue();
 
                             ArrayList<EndPoint> endPoints = connectivityService.getEndPoint();
+                            String vendor = "";
                             if (endPoints != null) {
                                 for (EndPoint endPoint1 : endPoints) {
                                     if (endPoint1.getConnectionEndPoint() != null) {
@@ -616,12 +633,14 @@ public class ApiClientInventoryService extends BaseApiClientService {
                                                     && connectionEndPoint1.nodeUuid != null) {
                                                 String nodeUuid = connectionEndPoint1.topologyUuid + "|"
                                                         + connectionEndPoint1.nodeUuid;
+                                                vendor = connectionEndPoint1.topologyUuid;
+                                                TopologyNodeDetail getNodeName = getPdNames(
+                                                        connectionEndPoint1.topologyUuid, nodeUuid);
 
-                                                TopologyNodeDetail getNodeName = getPdNames(nodeUuid);
-
-                                                ArrayList<AdditionalInformation> nodeAdditionalInformations = getNodeName
-                                                        .getAdditionalIinformation();
-                                                if (nodeAdditionalInformations != null) {
+                                                if (getNodeName != null
+                                                        && getNodeName.getAdditionalIinformation() != null) {
+                                                    ArrayList<AdditionalInformation> nodeAdditionalInformations = getNodeName
+                                                            .getAdditionalIinformation();
                                                     for (AdditionalInformation nodeAdditionalInformation : nodeAdditionalInformations) {
                                                         if ("nativeEMSName"
                                                                 .equals(nodeAdditionalInformation.valueName)) {
@@ -666,7 +685,7 @@ public class ApiClientInventoryService extends BaseApiClientService {
                             // Construct row
                             String[] row2 = { trailId, userLabel, circuitId, rate, "Ethernet", "INNI Connectivity",
                                     "MAIN",
-                                    "SWITCH",
+                                    vendor,
                                     topologyUserLabel,
                                     aEndDropNode, zEndDropNode, aEndDropPort, zEndDropPort, aEndNode, zEndNode,
                                     aEndPort, zEndPort,
