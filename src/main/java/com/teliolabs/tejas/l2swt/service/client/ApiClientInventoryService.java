@@ -310,7 +310,7 @@ public class ApiClientInventoryService extends BaseApiClientService {
                 .method(resolveMethod(endpoint))
                 .uri(uriBuilder -> uriBuilder
                         .path(getEndpointPath(endpoint))
-                        .queryParam("size", 500)
+                        .queryParam("size", 1000)
                         .build())
                 .headers(headers -> headers.setBearerAuth(
                         apiClientAuthService.getValidToken()))
@@ -429,7 +429,7 @@ public class ApiClientInventoryService extends BaseApiClientService {
                         rate = "STM256";
                     }
 
-                } else if (topologyaddinfo.valueName.equals("ZEndCapacity")) {
+                } else if (topologyaddinfo.valueName.equals("capacity")) {
                     ZEndCapacity = calculateRate(topologyaddinfo.value);
                 } else if (topologyaddinfo.valueName.equals("user-label")) {
                     userLabel = topologyaddinfo.value;
@@ -461,6 +461,8 @@ public class ApiClientInventoryService extends BaseApiClientService {
                 for (AdditionalInformation nodeAdditionalInformation : nodeAdditionalInformations) {
                     if (nodeAdditionalInformation.valueName.equals("nativeEMSName")) {
                         aEndNode = nodeAdditionalInformation.value;
+                    }if (nodeAdditionalInformation.valueName.equals("partition")) {
+                        circle = nodeAdditionalInformation.value;
                     }
                 }
             }
@@ -478,13 +480,13 @@ public class ApiClientInventoryService extends BaseApiClientService {
             LocalDateTime currentDateTime = LocalDateTime.now();
             String lastModified = currentDateTime.toString();
 
-            if (aVendor.contains("GPON")) {
-                circle = "GPONEms";
-            } else if (aVendor.toLowerCase().contains("switch")) {
-                circle = "SwitchEms";
-            } else if (aVendor.toLowerCase().contains("ptn")) {
-                circle = "PtnEms";
-            }
+            // if (aVendor.contains("GPON")) {
+            //     circle = "GPONEms";
+            // } else if (aVendor.toLowerCase().contains("switch")) {
+            //     circle = "SwitchEms";
+            // } else if (aVendor.toLowerCase().contains("ptn")) {
+            //     circle = "PtnEms";
+            // }
 
             // Collect data for topology
             String[] row = { userLabel, rate, "Ethernet", "INNI Connectivity", aVendor, zVendor, aVendor, aEndNode,
@@ -559,7 +561,9 @@ public class ApiClientInventoryService extends BaseApiClientService {
                             for (AdditionalInformation nodeAdditionalInformation : nodeAdditionalInformations) {
                                 if (nodeAdditionalInformation.valueName.equals("nativeEMSName")) {
                                     aEndNode = nodeAdditionalInformation.value;
-                                }
+                                }if (nodeAdditionalInformation.valueName.equals("partition")) {
+                        circle = nodeAdditionalInformation.value;
+                    }
                             }
                         }
                         if (getZNodeNames != null && getZNodeNames.getAdditionalIinformation() != null) {
@@ -574,13 +578,13 @@ public class ApiClientInventoryService extends BaseApiClientService {
                     }
                 }
 
-                if (vendor.contains("GPON")) {
-                    circle = "GPONEms";
-                } else if (vendor.toLowerCase().contains("switch")) {
-                    circle = "SwitchEms";
-                } else if (vendor.toLowerCase().contains("ptn")) {
-                    circle = "PtnEms";
-                }
+                // if (vendor.contains("GPON")) {
+                //     circle = "GPONEms";
+                // } else if (vendor.toLowerCase().contains("switch")) {
+                //     circle = "SwitchEms";
+                // } else if (vendor.toLowerCase().contains("ptn")) {
+                //     circle = "PtnEms";
+                // }
 
                 String[] row2 = { trailId, userLabel, circuitId, rate, "Ethernet", "INNI Connectivity", "MAIN",
                         vendor,
@@ -615,101 +619,166 @@ public class ApiClientInventoryService extends BaseApiClientService {
         // for efficiency
 
         for (Root serviceDetail : serviceDetails) {
-            if (serviceDetail.getConnectivityService() != null) {
-                ConnectivityService connectivityService = serviceDetail.getConnectivityService();
 
-                if (connectivityService.getName() != null) {
-                    ArrayList<AdditionalInformation> vlanids = connectivityService.getAdditionalInformation();
-                    for (AdditionalInformation vlanid : vlanids) {
-                        if (vlanid.getValueName().equals("associated-vlans")) {
-                            trailId = vlanid.getValue();
-                        }
-                    }
-                    List<Name> serviceNames = connectivityService.getName();
-                    for (Name serviceName : serviceNames) {
-                        if ("ConnectivityService".equals(serviceName.getValueName())) {
-                            userLabel = serviceName.getValue();
+    if (serviceDetail.getConnectivityService() != null) {
 
-                            ArrayList<EndPoint> endPoints = connectivityService.getEndPoint();
-                            String vendor = "";
-                            if (endPoints != null) {
-                                for (EndPoint endPoint1 : endPoints) {
-                                    if (endPoint1.getConnectionEndPoint() != null) {
-                                        for (ConnectionEndPoint connectionEndPoint1 : endPoint1
-                                                .getConnectionEndPoint()) {
-                                            if (connectionEndPoint1.topologyUuid != null
-                                                    && connectionEndPoint1.nodeUuid != null) {
-                                                String nodeUuid = connectionEndPoint1.topologyUuid + "|"
-                                                        + connectionEndPoint1.nodeUuid;
-                                                vendor = connectionEndPoint1.topologyUuid;
-                                                TopologyNodeDetail getNodeName = getPdNames(
-                                                        connectionEndPoint1.topologyUuid, nodeUuid);
+        ConnectivityService connectivityService = serviceDetail.getConnectivityService();
 
-                                                if (getNodeName != null
-                                                        && getNodeName.getAdditionalIinformation() != null) {
-                                                    ArrayList<AdditionalInformation> nodeAdditionalInformations = getNodeName
-                                                            .getAdditionalIinformation();
-                                                    for (AdditionalInformation nodeAdditionalInformation : nodeAdditionalInformations) {
-                                                        if ("nativeEMSName"
-                                                                .equals(nodeAdditionalInformation.valueName)) {
+        // Reset values for every service
+        trailId = "";
+        userLabel = "";
+        circuitId = "";
+        rate = "";
+        String vendor = "";
+        aEndDropNode = "";
+        zEndDropNode = "";
+        aEndDropPort = "";
+        zEndDropPort = "";
 
-                                                            aEndDropNode = nodeAdditionalInformation.value;
-
-                                                            // Extract port label from endpoint
-                                                            ArrayList<AdditionalInformation> additionalInformation = endPoint1
-                                                                    .getAdditionalInformation();
-                                                            if (additionalInformation != null) {
-                                                                for (AdditionalInformation additionalInformation1 : additionalInformation) {
-                                                                    if (additionalInformation1 != null &&
-                                                                            "port-label".equals(
-                                                                                    additionalInformation1.valueName)) {
-
-                                                                        // Assign to a_end_port or z_end_port
-                                                                        aEndDropPort = additionalInformation1.value;
-                                                                    }
-                                                                }
-                                                            }
-
-                                                        }
-                                                    }
-                                                }
-
-                                            }
-                                        }
-                                    }
-
-                                }
-                            }
-
-                            // Extract circuitId and rate
-                            circuitId = extractCircuitId(userLabel);
-                            rate = extractRate(userLabel);
-
-                            // // Debug output
-                            // System.out.println("User Label: " + userLabel);
-                            // System.out.println("Node Label: " + nodeLabel);
-                            // System.out.println("Port Label: " + portLabels);
-                            if (vendor.contains("GPON")) {
-                                circle = "GPONEms";
-                            } else if (vendor.toLowerCase().contains("switch")) {
-                                circle = "SwitchEms";
-                            } else if (vendor.toLowerCase().contains("ptn")) {
-                                circle = "PtnEms";
-                            }
-                            // Construct row
-                            String[] row2 = { trailId, userLabel, circuitId, rate, "Ethernet", "INNI Connectivity",
-                                    "MAIN",
-                                    vendor,
-                                    topologyUserLabel,
-                                    aEndDropNode, zEndDropNode, aEndDropPort, zEndDropPort, aEndNode, zEndNode,
-                                    aEndPort, zEndPort,
-                                    circle, "NE2NE", lastModified };
-                            tunnelData.add(row2);
-                        }
-                    }
+        if (connectivityService.getAdditionalInformation() != null) {
+            for (AdditionalInformation vlanid : connectivityService.getAdditionalInformation()) {
+                if ("associated-vlans".equals(vlanid.getValueName())) {
+                    trailId = vlanid.getValue();
+                    break;
                 }
             }
         }
+
+        if (connectivityService.getName() != null) {
+
+            for (Name serviceName : connectivityService.getName()) {
+
+                if ("ConnectivityService".equals(serviceName.getValueName())) {
+
+                    userLabel = serviceName.getValue();
+
+                    ArrayList<EndPoint> endPoints = connectivityService.getEndPoint();
+
+                    if (endPoints != null) {
+
+                        for (int i = 0; i < endPoints.size(); i++) {
+
+                            EndPoint endPoint = endPoints.get(i);
+
+                            if (endPoint.getConnectionEndPoint() == null
+                                    || endPoint.getConnectionEndPoint().isEmpty()) {
+                                continue;
+                            }
+
+                            ConnectionEndPoint connectionEndPoint =
+                                    endPoint.getConnectionEndPoint().get(0);
+
+                            if (connectionEndPoint.topologyUuid == null
+                                    || connectionEndPoint.nodeUuid == null) {
+                                continue;
+                            }
+
+                            vendor = connectionEndPoint.topologyUuid;
+
+                            String nodeUuid = connectionEndPoint.topologyUuid + "|"
+                                    + connectionEndPoint.nodeUuid;
+
+                            TopologyNodeDetail nodeDetail =
+                                    getPdNames(connectionEndPoint.topologyUuid, nodeUuid);
+
+                            String nodeName = "";
+
+                            if (nodeDetail != null
+                                    && nodeDetail.getAdditionalIinformation() != null) {
+
+                                for (AdditionalInformation info :
+                                        nodeDetail.getAdditionalIinformation()) {
+
+                                    if ("nativeEMSName".equals(info.valueName)) {
+                                        nodeName = info.value;
+                                        break;
+                                    }
+                                    if ("partition".equals(info.valueName)) {
+                                        nodeName = info.value;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            // Build port from ConnectivityServiceEndPoint
+                            String portLabel = "";
+
+                            if (endPoint.getName() != null) {
+
+                                for (Name epName : endPoint.getName()) {
+
+                                    if ("ConnectivityServiceEndPoint"
+                                            .equals(epName.getValueName())) {
+
+                                        String value = epName.getValue();
+                                        // Example:
+                                        // 10.129.240.50|1|1|9
+
+                                        String[] parts = value.split("\\|");
+
+                                        if (parts.length >= 4) {
+                                            portLabel = "ETH-"
+                                                    + parts[1] + "-"
+                                                    + parts[2] + "-"
+                                                    + parts[3];
+                                        }
+
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if (i == 0) {
+                                aEndDropNode = nodeName;
+                                aEndDropPort = portLabel;
+                            } else if (i == 1) {
+                                zEndDropNode = nodeName;
+                                zEndDropPort = portLabel;
+                            }
+                        }
+                    }
+
+                    // Extract circuitId and rate
+                    circuitId = extractCircuitId(userLabel);
+                    rate = extractRate(userLabel);
+
+                    // if (vendor.contains("GPON")) {
+                    //     circle = "GPONEms";
+                    // } else if (vendor.toLowerCase().contains("switch")) {
+                    //     circle = "SwitchEms";
+                    // } else if (vendor.toLowerCase().contains("ptn")) {
+                    //     circle = "PtnEms";
+                    // }
+
+                    String[] row2 = {
+                            trailId,
+                            userLabel,
+                            circuitId,
+                            rate,
+                            "Ethernet",
+                            "INNI Connectivity",
+                            "MAIN",
+                            vendor,
+                            topologyUserLabel,
+                            aEndDropNode,
+                            zEndDropNode,
+                            aEndDropPort,
+                            zEndDropPort,
+                            aEndNode,
+                            zEndNode,
+                            aEndPort,
+                            zEndPort,
+                            circle,
+                            "NE2NE",
+                            lastModified
+                    };
+
+                    tunnelData.add(row2);
+                }
+            }
+        }
+    }
+}
         trailRepo.truncateTable();
         trailService.saveTrailData(tunnelData);
     }
@@ -720,17 +789,17 @@ public class ApiClientInventoryService extends BaseApiClientService {
         if (matcher.find()) {
             return matcher.group(); // Return the first match
         }
-        return "1 GigE"; // No match found
+        return "1GigE"; // No match found
     }
 
     private String calculateRate(String value) {
 
         if (value.equals("1000")) {
-            return "1 GigE";
+            return "1GigE";
         } else if (value.equals("10000")) {
-            return "10 GigE";
+            return "10GigE";
         }
-        return "1 GigE";
+        return "1GigE";
     }
 
     public static String extractCircuitId(String input) {
