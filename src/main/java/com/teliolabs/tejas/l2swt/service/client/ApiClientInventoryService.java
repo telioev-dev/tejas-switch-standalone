@@ -429,9 +429,7 @@ public class ApiClientInventoryService extends BaseApiClientService {
                         rate = "STM256";
                     }
 
-                } else if (topologyaddinfo.valueName.equals("capacity")) {
-                    ZEndCapacity = calculateRate(topologyaddinfo.value);
-                } else if (topologyaddinfo.valueName.equals("user-label")) {
+                }  else if (topologyaddinfo.valueName.equals("user-label")) {
                     userLabel = topologyaddinfo.value;
 
                 } else if (topologyaddinfo.valueName.equals("src-tp-label")) {
@@ -440,6 +438,9 @@ public class ApiClientInventoryService extends BaseApiClientService {
                     zEndPort = topologyaddinfo.value;
                 }
 
+                 if (topologyaddinfo.valueName.equals("capacity")) {
+                    ZEndCapacity = calculateRate(topologyaddinfo.value);
+                }
                 if (ZEndCapacity.equals("1 GigE")) {
                     rate = "1GigE";
                 }
