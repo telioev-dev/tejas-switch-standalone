@@ -431,7 +431,7 @@ public class ApiClientInventoryService extends BaseApiClientService {
 
                 }else if (topologyaddinfo.valueName.equals("capacity")) {
                     rate = calculateRate(topologyaddinfo.value);
-                    System.out.println(rate);
+                    // System.out.println(rate);
                 }  else if (topologyaddinfo.valueName.equals("user-label")) {
                     userLabel = topologyaddinfo.value;
 
